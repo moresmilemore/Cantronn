@@ -1220,7 +1220,7 @@ function catchOrange(obj){
     if(levelIdx>=9) checkAchievement('level_10');
     // every 10 levels grant a bonus life (levels 10, 20, 30, ...)
     if(levelIdx>0 && levelIdx%10===0){
-      lives=Math.min(lives+1, 9);
+      lives++;
       showToast('❤️ Bonus life! Keep going!');
     }
     triggerLevelUp();
