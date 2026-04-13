@@ -503,10 +503,10 @@
 // ═══════════════════════════════════════════════════════
 function getLevelCfg(idx){
   return {
-    speed:      110 + 280 * (1 - Math.exp(-idx / 8)),
-    spawnMs:    Math.max(400, 2200 - idx * 160),
+    speed:      130 + 320 * (1 - Math.exp(-idx / 7)),
+    spawnMs:    Math.max(350, 2000 - idx * 170),
     maxOranges: Math.min(8, 2 + Math.floor(idx / 2)),
-    hungerDrain:5 + Math.min(idx * 1.4, 18),
+    hungerDrain:7 + Math.min(idx * 1.6, 22),
   };
 }
 
@@ -525,8 +525,8 @@ let scoreRollTimer=null;
 
 // Power-up state
 const POWERUPS = {
-  slowTime:{ icon:'⏳', label:'Slow Time', dur:5000 },
-  magnet:  { icon:'🧲', label:'Magnet',    dur:4000 },
+  slowTime:{ icon:'⏳', label:'Slow Time', dur:4000 },
+  magnet:  { icon:'🧲', label:'Magnet',    dur:3000 },
   shield:  { icon:'🛡️', label:'Shield',    dur:null  }, // consumed on hit
 };
 let activePowerups = {}; // key -> { endTime } or { active:true } for shield
@@ -1066,10 +1066,10 @@ let missesThisLevel=0;
 // Fruit types: normal, golden, lemon, giant, powerup_slowTime, powerup_magnet, powerup_shield
 function pickFruitType(){
   const r = Math.random();
-  if(r < 0.05)  return 'powerup'; // 5% power-up
-  if(r < 0.13)  return 'golden';  // 8%
-  if(r < 0.23)  return 'lemon';   // 10%
-  if(r < 0.28)  return 'giant';   // 5%
+  if(r < 0.04)  return 'powerup'; // 4% power-up
+  if(r < 0.11)  return 'golden';  // 7%
+  if(r < 0.25)  return 'lemon';   // 14%
+  if(r < 0.30)  return 'giant';   // 5%
   return 'normal';
 }
 
@@ -1178,7 +1178,7 @@ function catchOrange(obj){
   const pts = obj.points * comboMult;
   score+=pts;
 
-  const refill = Math.max(10, 18 - levelIdx * 0.5);
+  const refill = Math.max(8, 15 - levelIdx * 0.6);
   const totalHunger = obj.hungerBonus > 0 ? obj.hungerBonus : refill;
   hunger=Math.min(100, hunger + totalHunger);
 
@@ -1247,7 +1247,7 @@ function missOrange(obj){
   }
 
   lives=Math.max(0,lives-1);
-  hunger=Math.max(0, hunger-12);
+  hunger=Math.max(0, hunger-16);
 
   flash('rgba(200,0,0,0.3)');
   screenShake();
