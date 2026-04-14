@@ -49,12 +49,12 @@
     }
     #hungerBar{
       height:100%;width:100%;
-      background:linear-gradient(90deg,#ff5722,#ff9800,#8bc34a);
+      background:#8bc34a;
       border-radius:999px;
       transition:width 0.3s,background 0.5s;
     }
     .combo-flash{
-      position:fixed;top:80px;left:50%;transform:translateX(-50%);
+      position:fixed;top:clamp(70px, 12vh, 100px);left:50%;transform:translateX(-50%);
       font-size:clamp(1.4rem,4vw,2.2rem);color:#ff6f00;
       pointer-events:none;z-index:200;
       animation:combo-up 0.9s ease-out forwards;
@@ -302,14 +302,6 @@
     .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;
       font-size:clamp(0.85rem,2.5vw,1.05rem);color:#7a3800;}
     .stat-grid b{color:#b85c00;}
-    #levelBadge{
-      position:fixed;top:65px;left:50%;transform:translateX(-50%);
-      background:#ff9800;color:white;border-radius:999px;
-      padding:4px 22px;font-size:1rem;z-index:110;
-      opacity:0;pointer-events:none;
-      transition:opacity 0.3s;
-    }
-
     /* ── leaderboard ── */
     .leaderboard{
       width:100%;max-width:440px;
@@ -355,6 +347,27 @@
     /* ── session stats ── */
     .session-stats{
       font-size:0.82rem;color:#7a3800;opacity:0.8;
+    }
+
+    /* ── start screen kitten bounce ── */
+    .start-kitten{
+      font-size:5rem;
+      animation: start-bounce 1.2s ease-in-out infinite;
+      display:block;
+    }
+    @keyframes start-bounce{
+      0%,100%{ transform:translateY(0) scale(1); }
+      40%{ transform:translateY(-18px) scale(1.08); }
+      60%{ transform:translateY(-12px) scale(1.05); }
+    }
+
+    /* ── overlay fade-in ── */
+    .overlay-enter{
+      animation: overlay-fade 0.4s ease-out;
+    }
+    @keyframes overlay-fade{
+      0%{ opacity:0; transform:scale(0.95); }
+      100%{ opacity:1; transform:scale(1); }
     }
   </style>
 </head>
@@ -407,7 +420,6 @@
   <button id="pauseBtn" title="Pause (P or Esc)" aria-label="Pause game" style="display:none">⏸️</button>
 </div>
 
-<div id="levelBadge">⬆️ LEVEL UP!</div>
 <div id="powerupHud"></div>
 
 <!-- toast notification -->
@@ -504,6 +516,7 @@
 
 <!-- start screen -->
 <div class="overlay" id="startScreen">
+  <div class="start-kitten">🐱</div>
   <h1>🍊 Citrus Kitten</h1>
   <p>Oranges are falling!<br>Click them before they hit the ground.<br>Keep your kitten fed — or it's game over.</p>
   <div class="stat-grid">
@@ -557,6 +570,7 @@ let oranges=[], spawnTimer=null, animFrame=null, lastTs=null;
 let bubbleTimer=null, eyeTimer=null;
 let levelFrozen=false;
 let paused=false;                                    // fix #19: pause state
+let pausedAt=0;
 let prevLives=3;
 let displayedScore=0;
 let scoreRollTimer=null;
@@ -582,7 +596,6 @@ const bubble      = document.getElementById('bubble');
 const purrBar     = document.getElementById('purrBar');
 const purrLabel   = document.getElementById('purrLabel');
 const flashOv     = document.getElementById('flashOverlay');
-const levelBadge  = document.getElementById('levelBadge');
 const powerupHud  = document.getElementById('powerupHud');
 const toastEl     = document.getElementById('toastEl');
 const pupilL      = document.getElementById('pupilL');
@@ -603,6 +616,7 @@ function getLeaderboard(){
 function saveLeaderboard(lb){ try{ localStorage.setItem('citrus_lb', JSON.stringify(lb)); }catch(e){} }
 
 function addLeaderboardEntry(entry){
+  if(entry.score <= 0) return getLeaderboard();
   const lb = getLeaderboard();
   lb.push(entry);
   lb.sort((a,b)=>b.score-a.score);
@@ -710,10 +724,11 @@ let audioCtx=null, masterGain=null;
 let musicGain=null, musicNodes=[], musicOn=true;
 let musicScheduled=false, musicStartTime=0, musicStep=0, musicTimeout=null;
 const MAX_VOL=0.22;
+let audioInited=false; // Fix Q: flag to skip redundant full init
 
 function initAudio(){
-  if(audioCtx){
-    if(audioCtx.state==='suspended') audioCtx.resume();
+  if(audioInited){
+    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
     return;
   }
   audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -742,6 +757,7 @@ function initAudio(){
   musicGain = ctx.createGain();
   musicGain.gain.value = musicOn ? 0.06 : 0;
   musicGain.connect(ctx.destination);
+  audioInited = true; // Fix Q: mark as fully initialized
   scheduleMusicLoop();
 }
 
@@ -754,6 +770,8 @@ function scheduleMusicLoop(){
   if(!audioCtx || !musicGain) return;
   const ctx = audioCtx;
   const now = ctx.currentTime;
+  // Fix O: tempo scales with level — 3% faster per level, capped at 60% of original
+  const beatDur = BEAT_DUR * Math.max(0.6, 1 - levelIdx * 0.03);
   if(!musicScheduled){
     musicStartTime = now;
     musicScheduled = true;
@@ -762,7 +780,7 @@ function scheduleMusicLoop(){
   // schedule 16 beats ahead
   const AHEAD = 16;
   for(let i=0;i<AHEAD;i++){
-    const t = musicStartTime + (musicStep + i) * BEAT_DUR;
+    const t = musicStartTime + (musicStep + i) * beatDur;
     if(t < now - 0.01) continue;
     const freq = PENTA_NOTES[(musicStep + i) % PENTA_NOTES.length];
     const osc = ctx.createOscillator();
@@ -771,13 +789,13 @@ function scheduleMusicLoop(){
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
     env.gain.linearRampToValueAtTime(0.5, t + 0.05);
-    env.gain.exponentialRampToValueAtTime(0.001, t + BEAT_DUR * 0.8);
+    env.gain.exponentialRampToValueAtTime(0.001, t + beatDur * 0.8);
     osc.connect(env); env.connect(musicGain);
-    osc.start(t); osc.stop(t + BEAT_DUR * 0.8);
+    osc.start(t); osc.stop(t + beatDur * 0.8);
     osc.onended = ()=>{ osc.disconnect(); env.disconnect(); };  // fix #8
   }
   musicStep += AHEAD;
-  musicTimeout = setTimeout(scheduleMusicLoop, AHEAD * BEAT_DUR * 800);
+  musicTimeout = setTimeout(scheduleMusicLoop, AHEAD * beatDur * 800);
 }
 
 document.getElementById('musicToggle').addEventListener('click', ()=>{
@@ -1008,9 +1026,7 @@ function updateHUD(){
 
   hungerBar.style.width=hunger+'%';
   const h=hunger;
-  hungerBar.style.background= h>60?'linear-gradient(90deg,#8bc34a,#cddc39)':
-                               h>30?'linear-gradient(90deg,#ff9800,#ffc107)':
-                                    'linear-gradient(90deg,#f44336,#ff5722)';
+  hungerBar.style.background = h>60 ? '#8bc34a' : h>30 ? '#ff9800' : '#f44336';
 
   // fix #22: low hunger vignette
   if(h < 20) hungerVignette.classList.add('active');
@@ -1055,7 +1071,7 @@ function spawnCombo(){
   if(combo<2) return;
   const el=document.createElement('div');
   el.className='combo-flash';
-  el.textContent=`x${combo} COMBO! 🔥`;
+  el.textContent=`x${Math.min(combo, 8)} COMBO! 🔥${combo > 8 ? ` (${combo} streak)` : ''}`;
   document.body.appendChild(el);
   el.addEventListener('animationend',()=>el.remove());
   setTimeout(()=>el.remove(), 2000);   // fix #17: safety fallback
@@ -1187,7 +1203,7 @@ function spawnOrange(){
 
   el.style.left=x+'px';
   el.style.top='-50px';
-  el.addEventListener('pointerdown', ev=>{ ev.stopPropagation(); catchOrange(obj); });
+  el.addEventListener('pointerdown', ev=>{ ev.stopPropagation(); catchOrange(obj); }, {once: true});
 
   gameArea.appendChild(el);
   oranges.push(obj);
@@ -1266,7 +1282,7 @@ function catchOrange(obj){
 
   flashFace('happy',500);
   showBubble(catchMsgs[caught%catchMsgs.length]);
-  spawnScorePop(obj.x, obj.y, combo>=2?`+${pts} x${combo}!`:`+${pts}`);
+  spawnScorePop(obj.x, obj.y, combo>=2?`+${pts} x${Math.min(combo,8)}!`:`+${pts}`);
   spawnCatchParticles(obj.x, obj.y);
   if(combo>=2) spawnCombo();
 
@@ -1361,10 +1377,19 @@ function triggerLevelUp(){
   badge.textContent = `⬆️ LEVEL ${levelIdx+1}!`;
   ov.classList.add('show');
 
+  const freezeStart = Date.now();
   setTimeout(()=>{
     ov.classList.remove('show');
     levelFrozen=false;
     lastTs=null;  // fix #4: prevent dt spike after freeze
+    // Fix D: compensate power-up endTimes for level-up freeze duration
+    const freezeElapsed = Date.now() - freezeStart;
+    for(const k of Object.keys(activePowerups)){
+      if(k!=='shield' && activePowerups[k].endTime) activePowerups[k].endTime += freezeElapsed;
+    }
+    // Fix N: difficulty preview toast
+    const hints = ['Faster!', 'More fruit!', 'Hungrier kitten!', 'Watch for lemons!'];
+    showToast(`⬆️ Level ${levelIdx+1} — ${hints[levelIdx % hints.length]}`, 2000);
   }, 500);
 }
 
@@ -1383,7 +1408,7 @@ function gameLoop(ts){
   if(gs!=='playing') return;
   if(levelFrozen){ animFrame=requestAnimationFrame(gameLoop); return; }
 
-  const dt=lastTs?(ts-lastTs)/1000:0;
+  const dt=lastTs?Math.min((ts-lastTs)/1000, 0.05):0;
   lastTs=ts;
 
   const cfg=getLevelCfg(levelIdx);
@@ -1448,6 +1473,7 @@ function gameLoop(ts){
 function pauseGame(){
   if(gs!=='playing' || paused) return;
   paused=true;
+  pausedAt=Date.now();
   cancelAnimationFrame(animFrame);
   clearTimeout(spawnTimer);
   if(audioCtx) audioCtx.suspend();
@@ -1458,6 +1484,11 @@ function pauseGame(){
 function resumeGame(){
   if(!paused) return;
   paused=false;
+  // Fix D: compensate power-up endTimes for time spent paused
+  const pausedElapsed = Date.now() - pausedAt;
+  for(const k of Object.keys(activePowerups)){
+    if(k!=='shield' && activePowerups[k].endTime) activePowerups[k].endTime += pausedElapsed;
+  }
   document.getElementById('pauseOverlay').style.display='none';
   document.getElementById('pauseBtn').textContent='⏸️';
   if(audioCtx) audioCtx.resume();
@@ -1520,7 +1551,11 @@ function endGame(reason){
   paused=false;
   if('speechSynthesis' in window) speechSynthesis.cancel();
   oranges.forEach(o=>o.el.remove()); oranges=[];
-  if(audioCtx) audioCtx.suspend();
+  if(audioCtx){
+    masterGain?.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+    if(musicGain) musicGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+    setTimeout(() => { if(audioCtx) audioCtx.suspend(); }, 400);
+  }
   document.getElementById('pauseOverlay').style.display='none';
   document.getElementById('pauseBtn').style.display='none';
   hungerVignette.classList.remove('active');
@@ -1528,10 +1563,11 @@ function endGame(reason){
   const accuracy = caught+missed>0 ? Math.round(caught/(caught+missed)*100) : 0;
   gameEndScore=score; gameEndLevel=levelIdx+1; gameEndAccuracy=accuracy;
 
-  if(score>best){
-    best=score;
-    try{ localStorage.setItem('citrus_best',best); }catch(e){}  // fix #9
-    bestDisp.textContent=best;
+  const prevBest = best;
+  if(score > best){
+    best = score;
+    try{ localStorage.setItem('citrus_best', best); }catch(e){}  // fix #9
+    bestDisp.textContent = best;
   }
 
   // leaderboard
@@ -1540,7 +1576,11 @@ function endGame(reason){
   // session stats
   updateSessionStats({ caught, bestCombo:maxComboThisGame, accuracy });
 
-  const title = reason==='starved'?'😿 The kitten starved!':'💔 No lives left!';
+  let title = reason==='starved'?'😿 The kitten starved!':'💔 No lives left!';
+  if(score > 0 && score > prevBest){
+    title = '🏆 NEW HIGH SCORE!';
+    showToast('🎉 New record: ' + score + ' points!');
+  }
   document.getElementById('gameOverTitle').textContent=title;
   document.getElementById('gameOverStats').innerHTML=`
     <span>Score</span><b>${score}</b>
@@ -1564,7 +1604,11 @@ function endGame(reason){
   }
 
   setFace('sad');
-  document.getElementById('gameOverScreen').style.display='flex';
+  const goScreen = document.getElementById('gameOverScreen');
+  goScreen.classList.remove('overlay-enter');
+  void goScreen.offsetWidth; // force reflow to restart animation
+  goScreen.classList.add('overlay-enter');
+  goScreen.style.display='flex';
 
   // Sad speech — gated by sfxOn (fix #21)
   if(sfxOn && 'speechSynthesis' in window){
@@ -1583,11 +1627,15 @@ function endGame(reason){
 // ═══════════════════════════════════════════════════════
 document.getElementById('shareBtn').addEventListener('click', ()=>{
   const text = `🍊 Citrus Kitten: I scored ${gameEndScore} points (Level ${gameEndLevel}, ${gameEndAccuracy}% accuracy)! Can you beat me?`;
-  navigator.clipboard?.writeText(text).then(()=>{
-    showToast('📋 Score copied to clipboard!');
-  }).catch(()=>{
-    showToast('📋 ' + text);
-  });
+  if(navigator.share){
+    navigator.share({ title: 'Citrus Kitten', text }).catch(()=>{});
+  } else {
+    navigator.clipboard?.writeText(text).then(()=>{
+      showToast('📋 Score copied to clipboard!');
+    }).catch(()=>{
+      showToast('📋 ' + text);
+    });
+  }
 });
 
 // ═══════════════════════════════════════════════════════
@@ -1607,6 +1655,11 @@ document.addEventListener('keydown', e=>{
       startGame();
     }
   }
+});
+
+// Fix B: auto-pause when tab is hidden to prevent time-warp on return
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden && gs==='playing' && !paused) pauseGame();
 });
 
 // fix #16: re-cache kitten position on window resize
