@@ -553,9 +553,9 @@
 function getLevelCfg(idx){
   return {
     speed:      130 + 320 * (1 - Math.exp(-idx / 7)),
-    spawnMs:    Math.max(350, 2000 - idx * 170),
-    maxOranges: Math.min(8, 2 + Math.floor(idx / 2)),
-    hungerDrain:Math.min(7 + idx * 1.6, 20),         // fix #6: cap total drain at 20/sec
+    spawnMs:    Math.max(350, 1400 - idx * 120),
+    maxOranges: Math.min(8, 3 + Math.floor(idx / 2)),
+    hungerDrain:Math.min(4 + idx * 1.5, 20),         // fix #6: cap total drain at 20/sec
     hungerRefill:Math.max(12, 18 - idx * 0.5),      // fix #6: scaled refill floor
   };
 }
