@@ -64,11 +64,39 @@
       100%{opacity:0;transform:translateX(-50%) translateY(-60px) scale(1.4);}
     }
 
-    /* ── music toggle ── */
-    #musicToggle{
+    /* ── music / sfx toggle ── */
+    #musicToggle, #sfxToggle{
       background:rgba(255,255,255,0.7);border:2px solid #f4a94e;
       border-radius:999px;padding:3px 10px;cursor:pointer;
       font-size:1rem;color:#b85c00;
+    }
+
+    /* ── pause button ── */
+    #pauseBtn{
+      background:rgba(255,255,255,0.7);border:2px solid #f4a94e;
+      border-radius:999px;padding:3px 10px;cursor:pointer;
+      font-size:1rem;color:#b85c00;
+    }
+
+    /* ── pause overlay ── */
+    #pauseOverlay{
+      position:fixed;inset:0;z-index:900;
+      display:none;align-items:center;justify-content:center;
+      background:rgba(255,220,120,0.85);
+      backdrop-filter:blur(8px);
+      font-size:clamp(2.5rem,10vw,5rem);color:#b85c00;
+      text-shadow:3px 3px 0 #ffe0a0;
+    }
+
+    /* ── low hunger vignette ── */
+    #hungerVignette{
+      position:fixed;inset:0;pointer-events:none;z-index:95;
+      box-shadow:inset 0 0 80px 30px rgba(220,30,30,0.55);
+      opacity:0;transition:opacity 0.5s;
+    }
+    #hungerVignette.active{ opacity:1; animation:vignette-pulse 1s ease-in-out infinite alternate; }
+    @keyframes vignette-pulse{
+      0%{opacity:0.5;}100%{opacity:1;}
     }
 
     /* ── power-up HUD ── */
@@ -343,6 +371,12 @@
 <!-- flash overlay -->
 <div id="flashOverlay"></div>
 
+<!-- low hunger vignette -->
+<div id="hungerVignette"></div>
+
+<!-- pause overlay -->
+<div id="pauseOverlay" style="display:none">⏸ PAUSED</div>
+
 <!-- level-up overlay -->
 <div id="levelUpOverlay"><div id="levelUpBadge"></div></div>
 
@@ -368,7 +402,9 @@
     <span>BEST</span>
     <span class="hud-val" id="bestDisplay">0</span>
   </div>
-  <button id="musicToggle" title="Toggle music">🔊</button>
+  <button id="musicToggle" title="Toggle music" aria-label="Toggle music">🔊</button>
+  <button id="sfxToggle" title="Toggle SFX &amp; Speech" aria-label="Toggle SFX and speech">🗣️</button>
+  <button id="pauseBtn" title="Pause (P or Esc)" aria-label="Pause game" style="display:none">⏸️</button>
 </div>
 
 <div id="levelBadge">⬆️ LEVEL UP!</div>
@@ -506,7 +542,8 @@ function getLevelCfg(idx){
     speed:      130 + 320 * (1 - Math.exp(-idx / 7)),
     spawnMs:    Math.max(350, 2000 - idx * 170),
     maxOranges: Math.min(8, 2 + Math.floor(idx / 2)),
-    hungerDrain:7 + Math.min(idx * 1.6, 22),
+    hungerDrain:Math.min(7 + idx * 1.6, 20),         // fix #6: cap total drain at 20/sec
+    hungerRefill:Math.max(12, 18 - idx * 0.5),      // fix #6: scaled refill floor
   };
 }
 
@@ -519,9 +556,11 @@ let combo=0, caught=0, missed=0;
 let oranges=[], spawnTimer=null, animFrame=null, lastTs=null;
 let bubbleTimer=null, eyeTimer=null;
 let levelFrozen=false;
+let paused=false;                                    // fix #19: pause state
 let prevLives=3;
 let displayedScore=0;
 let scoreRollTimer=null;
+let sfxOn=true;                                      // fix #21: sfx/speech toggle
 
 // Power-up state
 const POWERUPS = {
@@ -549,7 +588,8 @@ const toastEl     = document.getElementById('toastEl');
 const pupilL      = document.getElementById('pupilL');
 const pupilR      = document.getElementById('pupilR');
 
-let best = parseInt(localStorage.getItem('citrus_best')||'0');
+let best = 0;
+try{ best = parseInt(localStorage.getItem('citrus_best')||'0')||0; }catch(e){}  // fix #9
 bestDisp.textContent = best;
 document.getElementById('startBest').textContent = best;
 
@@ -560,7 +600,7 @@ function getLeaderboard(){
   try{ return JSON.parse(localStorage.getItem('citrus_lb')||'[]'); }
   catch(e){ return []; }
 }
-function saveLeaderboard(lb){ localStorage.setItem('citrus_lb', JSON.stringify(lb)); }
+function saveLeaderboard(lb){ try{ localStorage.setItem('citrus_lb', JSON.stringify(lb)); }catch(e){} }
 
 function addLeaderboardEntry(entry){
   const lb = getLeaderboard();
@@ -607,7 +647,7 @@ function getUnlockedAchievements(){
   try{ return JSON.parse(localStorage.getItem('citrus_ach')||'[]'); }
   catch(e){ return []; }
 }
-function saveAchievements(arr){ localStorage.setItem('citrus_ach', JSON.stringify(arr)); }
+function saveAchievements(arr){ try{ localStorage.setItem('citrus_ach', JSON.stringify(arr)); }catch(e){} }
 
 let sessionUnlocks = []; // achievements unlocked this game
 function checkAchievement(id){
@@ -636,7 +676,7 @@ function getSessionStats(){
   try{ return JSON.parse(localStorage.getItem('citrus_session')||'{}'); }
   catch(e){ return {}; }
 }
-function saveSessionStats(s){ localStorage.setItem('citrus_session', JSON.stringify(s)); }
+function saveSessionStats(s){ try{ localStorage.setItem('citrus_session', JSON.stringify(s)); }catch(e){} }
 
 function updateSessionStats(gameResult){
   const s = getSessionStats();
@@ -734,6 +774,7 @@ function scheduleMusicLoop(){
     env.gain.exponentialRampToValueAtTime(0.001, t + BEAT_DUR * 0.8);
     osc.connect(env); env.connect(musicGain);
     osc.start(t); osc.stop(t + BEAT_DUR * 0.8);
+    osc.onended = ()=>{ osc.disconnect(); env.disconnect(); };  // fix #8
   }
   musicStep += AHEAD;
   musicTimeout = setTimeout(scheduleMusicLoop, AHEAD * BEAT_DUR * 800);
@@ -743,6 +784,13 @@ document.getElementById('musicToggle').addEventListener('click', ()=>{
   musicOn = !musicOn;
   document.getElementById('musicToggle').textContent = musicOn ? '🔊' : '🔇';
   if(musicGain) musicGain.gain.setTargetAtTime(musicOn ? 0.06 : 0, audioCtx.currentTime, 0.3);
+});
+
+// fix #21: SFX/Speech toggle
+document.getElementById('sfxToggle').addEventListener('click', ()=>{
+  sfxOn = !sfxOn;
+  document.getElementById('sfxToggle').textContent = sfxOn ? '🗣️' : '🔕';
+  if(!sfxOn && 'speechSynthesis' in window) speechSynthesis.cancel();
 });
 
 function setPurrVol(pct){
@@ -771,6 +819,7 @@ function playMeow(){
   env.gain.exponentialRampToValueAtTime(0.001,now+.60);
   osc.connect(filt); filt.connect(env); env.connect(ctx.destination);
   osc.start(now); osc.stop(now+.65);
+  osc.onended = () => { osc.disconnect(); filt.disconnect(); env.disconnect(); };
 }
 
 function playCatchPop(){
@@ -784,6 +833,7 @@ function playCatchPop(){
   env.gain.exponentialRampToValueAtTime(0.001, now+0.10);
   osc.connect(env); env.connect(ctx.destination);
   osc.start(now); osc.stop(now+0.12);
+  osc.onended = () => { osc.disconnect(); env.disconnect(); };
 }
 
 function playLevelUpWhoosh(){
@@ -803,6 +853,7 @@ function playLevelUpWhoosh(){
   env.gain.exponentialRampToValueAtTime(0.001, now+0.4);
   src.connect(filt); filt.connect(env); env.connect(ctx.destination);
   src.start(now); src.stop(now+0.45);
+  src.onended = () => { src.disconnect(); filt.disconnect(); env.disconnect(); };
 }
 
 function playHiss(){
@@ -816,6 +867,7 @@ function playHiss(){
   g.gain.exponentialRampToValueAtTime(0.001,now+.55);
   osc.connect(g); g.connect(ctx.destination);
   osc.start(now); osc.stop(now+.6);
+  osc.onended = () => { osc.disconnect(); g.disconnect(); };
 }
 
 // ── Speech ──
@@ -865,7 +917,8 @@ function callOutAsshole(){
 //  KITTEN FACE
 // ═══════════════════════════════════════════════════════
 function setFace(mood){
-  document.getElementById('eyesNormal').style.display = mood==='normal'?'':'none';
+  // fix #5: show normal eyes for both normal and sad
+  document.getElementById('eyesNormal').style.display = (mood==='normal'||mood==='sad')?'':'none';
   document.getElementById('eyesHappy').style.display  = mood==='happy'?'':'none';
   document.getElementById('eyesScared').style.display = mood==='scared'?'':'none';
   document.getElementById('mouthNormal').style.display= (mood==='normal'||mood==='scared')?'':'none';
@@ -877,17 +930,15 @@ function setFace(mood){
 function flashFace(mood, ms=600){
   setFace(mood);
   clearTimeout(eyeTimer);
-  eyeTimer=setTimeout(()=>{ eyeTimer=null; setFace('normal'); }, ms);
+  // fix #11: restore to sad if hunger is critically low, not always normal
+  eyeTimer=setTimeout(()=>{ eyeTimer=null; setFace(hunger < 25 ? 'sad' : 'normal'); }, ms);
 }
 
 // Eye tracking: move pupils toward nearest falling orange
+// fix #16: use cached kitCX/kitCY instead of getBoundingClientRect every frame
 function updateEyeTracking(){
   if(!eyeTimer && oranges.length>0){
-    // find lowest (highest y) orange
     let nearest=null, bestDist=Infinity;
-    const kitRect = kittenWrap.getBoundingClientRect();
-    const kitCX = kitRect.left + kitRect.width*0.44;
-    const kitCY = kitRect.top  + kitRect.height*0.40;
     for(const o of oranges){
       const dist = Math.hypot(o.x - kitCX, o.y - kitCY);
       if(o.y > -20 && dist < bestDist){ bestDist=dist; nearest=o; }
@@ -928,6 +979,8 @@ function showBubble(msg){
 // ═══════════════════════════════════════════════════════
 //  HUD UPDATES
 // ═══════════════════════════════════════════════════════
+const hungerVignette = document.getElementById('hungerVignette');
+
 function updateHUD(){
   // animated score roll-up
   if(score !== displayedScore){
@@ -946,15 +999,22 @@ function updateHUD(){
 
   levelDisp.textContent=levelIdx+1;
 
-  // conditional lives update
-  const newLivesHTML = '❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives));
-  if(livesDisp.innerHTML !== newLivesHTML) livesDisp.innerHTML = newLivesHTML;
+  // fix #12: use prevLives to avoid unnecessary DOM writes
+  if(lives !== prevLives){
+    const newLivesHTML = '❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives));
+    livesDisp.innerHTML = newLivesHTML;
+    prevLives = lives;
+  }
 
   hungerBar.style.width=hunger+'%';
   const h=hunger;
   hungerBar.style.background= h>60?'linear-gradient(90deg,#8bc34a,#cddc39)':
                                h>30?'linear-gradient(90deg,#ff9800,#ffc107)':
                                     'linear-gradient(90deg,#f44336,#ff5722)';
+
+  // fix #22: low hunger vignette
+  if(h < 20) hungerVignette.classList.add('active');
+  else        hungerVignette.classList.remove('active');
 }
 
 function updatePurr(){
@@ -988,6 +1048,7 @@ function spawnScorePop(x,y,text){
   el.style.left=x+'px'; el.style.top=y+'px';
   document.body.appendChild(el);
   el.addEventListener('animationend',()=>el.remove());
+  setTimeout(()=>el.remove(), 2000);   // fix #17: safety fallback
 }
 
 function spawnCombo(){
@@ -997,6 +1058,7 @@ function spawnCombo(){
   el.textContent=`x${combo} COMBO! 🔥`;
   document.body.appendChild(el);
   el.addEventListener('animationend',()=>el.remove());
+  setTimeout(()=>el.remove(), 2000);   // fix #17: safety fallback
 }
 
 function spawnCatchParticles(x, y){
@@ -1013,6 +1075,7 @@ function spawnCatchParticles(x, y){
     el.style.left=x+'px'; el.style.top=y+'px';
     document.body.appendChild(el);
     el.addEventListener('animationend',()=>el.remove());
+    setTimeout(()=>el.remove(), 2000); // fix #17: safety fallback
   }
 }
 
@@ -1066,10 +1129,11 @@ let missesThisLevel=0;
 // Fruit types: normal, golden, lemon, giant, powerup_slowTime, powerup_magnet, powerup_shield
 function pickFruitType(){
   const r = Math.random();
-  if(r < 0.04)  return 'powerup'; // 4% power-up
-  if(r < 0.11)  return 'golden';  // 7%
-  if(r < 0.25)  return 'lemon';   // 14%
-  if(r < 0.30)  return 'giant';   // 5%
+  const lemonRate = 0.06 + Math.min(levelIdx * 0.01, 0.10); // fix #15: 6% → 16% by level 10
+  if(r < 0.04)               return 'powerup'; // 4% power-up
+  if(r < 0.11)               return 'golden';  // 7%
+  if(r < 0.11 + lemonRate)   return 'lemon';   // scaled by level
+  if(r < 0.11 + lemonRate + 0.05) return 'giant'; // 5%
   return 'normal';
 }
 
@@ -1147,8 +1211,19 @@ function catchOrange(obj){
   obj.el.classList.add('caught');
   obj.el.addEventListener('animationend',()=>obj.el.remove());
 
-  // lemon: clicking loses a life
+  // lemon: clicking loses a life (unless shield active — fix #13)
   if(obj.fruitType==='lemon'){
+    combo=0;  // fix #10: lemon breaks combo
+    if(shieldActive){
+      // fix #13: shield absorbs lemon click
+      shieldActive=false;
+      delete activePowerups.shield;
+      updatePowerupHud();
+      checkAchievement('shield_used');
+      showToast('🛡️ Shield absorbed the lemon!');
+      flash('rgba(100,200,255,0.4)');
+      return;
+    }
     lives=Math.max(0,lives-1);
     flash('rgba(255,255,0,0.4)');
     flashFace('scared',600);
@@ -1156,7 +1231,7 @@ function catchOrange(obj){
     screenShake();
     navigator.vibrate?.(100);
     initAudio();
-    playHiss();
+    if(sfxOn) playHiss();  // fix #21
     updateHUD(); updatePurr();
     if(lives<=0) endGame('no_lives');
     return;
@@ -1167,7 +1242,7 @@ function catchOrange(obj){
     activatePowerup(obj.powerupType);
     spawnScorePop(obj.x, obj.y, POWERUPS[obj.powerupType].icon);
     initAudio();
-    playCatchPop();
+    if(sfxOn) playCatchPop();  // fix #21
     return;
   }
 
@@ -1178,7 +1253,8 @@ function catchOrange(obj){
   const pts = obj.points * comboMult;
   score+=pts;
 
-  const refill = Math.max(8, 15 - levelIdx * 0.6);
+  const cfg2 = getLevelCfg(levelIdx);
+  const refill = cfg2.hungerRefill;  // fix #6: use scaled refill
   const totalHunger = obj.hungerBonus > 0 ? obj.hungerBonus : refill;
   hunger=Math.min(100, hunger + totalHunger);
 
@@ -1196,10 +1272,10 @@ function catchOrange(obj){
 
   navigator.vibrate?.(30);
   initAudio();
-  playCatchPop();
-  playMeow();
+  if(sfxOn) playCatchPop();  // fix #21
+  if(sfxOn) playMeow();  // fix #21
   speechBiteCount++;
-  if(speechBiteCount%8===0) playThankYouAndDaddy(speechBiteCount);
+  if(sfxOn && speechBiteCount%8===0) playThankYouAndDaddy(speechBiteCount);  // fix #21
 
   // achievements
   if(caught===1) checkAchievement('first_catch');
@@ -1231,6 +1307,7 @@ function catchOrange(obj){
 }
 
 function missOrange(obj){
+  if(gs!=='playing') return;  // fix #2: guard against post-endGame calls
   // don't mutate the array here — caller handles removal by not processing again
   obj.el.classList.add('missed');
   obj.el.addEventListener('animationend',()=>obj.el.remove());
@@ -1238,10 +1315,11 @@ function missOrange(obj){
   // letting a lemon go is fine — no penalty
   if(obj.fruitType==='lemon') return;
 
-  combo=0; missed++; missesThisLevel++;
+  // fix #14: power-up fruits don't penalize on miss
+  if(obj.fruitType==='powerup') return;
 
+  // fix #3: check shield BEFORE incrementing penalty counters
   if(shieldActive){
-    // shield absorbs the miss
     shieldActive=false;
     delete activePowerups.shield;
     updatePowerupHud();
@@ -1250,6 +1328,8 @@ function missOrange(obj){
     flash('rgba(100,200,255,0.4)');
     return;
   }
+
+  combo=0; missed++; missesThisLevel++;
 
   lives=Math.max(0,lives-1);
   hunger=Math.max(0, hunger-16);
@@ -1260,8 +1340,8 @@ function missOrange(obj){
   showBubble(missMsgs[missed%missMsgs.length]);
   navigator.vibrate?.(100);
   initAudio();
-  playHiss();
-  callOutAsshole();
+  if(sfxOn) playHiss();         // fix #21
+  if(sfxOn) callOutAsshole();   // fix #21
 
   updateHUD(); updatePurr();
   if(lives<=0) endGame('no_lives');
@@ -1284,7 +1364,16 @@ function triggerLevelUp(){
   setTimeout(()=>{
     ov.classList.remove('show');
     levelFrozen=false;
+    lastTs=null;  // fix #4: prevent dt spike after freeze
   }, 500);
+}
+
+// fix #16: cached kitten position (avoids getBoundingClientRect in hot loop)
+let kitCX=0, kitCY=0;
+function cacheKittenPos(){
+  const kitRect = kittenWrap.getBoundingClientRect();
+  kitCX = kitRect.left + kitRect.width*0.44;
+  kitCY = kitRect.top  + kitRect.height*0.40;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1307,8 +1396,11 @@ function gameLoop(ts){
   // update power-up HUD periodically
   if(Math.floor(ts/200) !== Math.floor((ts-dt*1000)/200)) updatePowerupHud();
 
-  // collect misses first, then process (avoid array mutation during iteration)
-  const toMiss=[];
+  // fix #1: two-pass approach — store objects by ref, not indices
+  const toCatch=[], toMiss=[];
+  const magnetActive = isMagnet();
+  const kittenBottom = window.innerHeight - 160;
+
   for(let i=oranges.length-1;i>=0;i--){
     const o=oranges[i];
     const speedMult = isSlowTime() ? 0.5 : 1;
@@ -1324,23 +1416,25 @@ function gameLoop(ts){
 
     o.el.style.top=o.y+'px';
 
-    // magnet: auto-catch oranges near kitten bottom
-    if(isMagnet() && o.fruitType!=='lemon'){
-      const kittenBottom = window.innerHeight - 160;
-      if(o.y > kittenBottom - 80){
-        catchOrange(o);
-        continue;
-      }
+    // fix #1: collect magnet catches — don't call catchOrange here
+    if(magnetActive && o.fruitType!=='lemon' && o.y > kittenBottom - 80){
+      toCatch.push(o);
+      continue;
     }
 
-    if(o.y>window.innerHeight+20) toMiss.push(i);
+    if(o.y>window.innerHeight+20) toMiss.push(o);
   }
-  // process misses (reverse order to safely splice)
-  for(let i=toMiss.length-1;i>=0;i--){
-    const idx=toMiss[i];
-    const o=oranges[idx];
-    oranges.splice(idx,1);
+
+  // fix #1: execute catches after loop (catchOrange replaces oranges array via filter)
+  for(const o of toCatch){ catchOrange(o); }
+
+  // process misses — filter out any already caught by magnet above
+  const caughtIds = new Set(toCatch.map(o=>o.id));
+  for(const o of toMiss){
+    if(caughtIds.has(o.id)) continue;  // already caught by magnet
+    oranges = oranges.filter(x=>x.id!==o.id);
     missOrange(o);
+    if(gs!=='playing') break;  // fix #2: stop if endGame was triggered
   }
 
   updateEyeTracking();
@@ -1349,27 +1443,65 @@ function gameLoop(ts){
 }
 
 // ═══════════════════════════════════════════════════════
+//  PAUSE
+// ═══════════════════════════════════════════════════════
+function pauseGame(){
+  if(gs!=='playing' || paused) return;
+  paused=true;
+  cancelAnimationFrame(animFrame);
+  clearTimeout(spawnTimer);
+  if(audioCtx) audioCtx.suspend();
+  document.getElementById('pauseOverlay').style.display='flex';
+  document.getElementById('pauseBtn').textContent='▶️';
+}
+
+function resumeGame(){
+  if(!paused) return;
+  paused=false;
+  document.getElementById('pauseOverlay').style.display='none';
+  document.getElementById('pauseBtn').textContent='⏸️';
+  if(audioCtx) audioCtx.resume();
+  lastTs=null;  // prevent dt spike after pause
+  scheduleSpawn();
+  animFrame=requestAnimationFrame(gameLoop);
+}
+
+function togglePause(){
+  if(paused) resumeGame(); else pauseGame();
+}
+
+document.getElementById('pauseBtn').addEventListener('click', togglePause);
+
+// ═══════════════════════════════════════════════════════
 //  START / END
 // ═══════════════════════════════════════════════════════
 function startGame(){
   gs='playing'; score=0; lives=3; levelIdx=0; hunger=100;
   combo=0; caught=0; missed=0; speechBiteCount=0;
   oranges=[]; lastTs=null; lastCatchTime=null;
-  levelFrozen=false; prevLives=3;
+  levelFrozen=false; paused=false;
+  prevLives=3;
   displayedScore=0; scoreDisp.textContent='0';
   activePowerups={}; shieldActive=false;
   maxComboThisGame=0; missesThisLevel=0;
+  musicScheduled=false; musicStep=0;  // fix #18: reset music state between games
   sessionUnlocks=[];
   document.getElementById('startScreen').style.display='none';
   document.getElementById('gameOverScreen').style.display='none';
+  document.getElementById('pauseOverlay').style.display='none';
+  document.getElementById('pauseBtn').style.display='';
+  document.getElementById('pauseBtn').textContent='⏸️';
   gameArea.querySelectorAll('.orange-fruit').forEach(el=>el.remove());
   powerupHud.innerHTML='';
+  hungerVignette.classList.remove('active');
   setFace('normal');
   updateHUD(); updatePurr();
   initAudio();
+  cacheKittenPos();  // fix #16: prime kitten position cache
   scheduleSpawn();
   spawnOrange();
   animFrame=requestAnimationFrame(gameLoop);
+  window.scrollTo(0,0);  // fix #24
 }
 
 let gameEndScore=0, gameEndLevel=0, gameEndAccuracy=0;
@@ -1379,16 +1511,26 @@ function endGame(reason){
   cancelAnimationFrame(animFrame);
   clearTimeout(spawnTimer);
   clearTimeout(musicTimeout);
+  clearTimeout(bubbleTimer);     // fix #7: clear all hanging timers
+  clearTimeout(eyeTimer);        // fix #7
+  clearTimeout(scoreRollTimer);  // fix #7
+  clearTimeout(toastTimer);      // fix #7
+  eyeTimer=null;
+  speechBusy=false;              // fix #7
+  paused=false;
   if('speechSynthesis' in window) speechSynthesis.cancel();
   oranges.forEach(o=>o.el.remove()); oranges=[];
   if(audioCtx) audioCtx.suspend();
+  document.getElementById('pauseOverlay').style.display='none';
+  document.getElementById('pauseBtn').style.display='none';
+  hungerVignette.classList.remove('active');
 
   const accuracy = caught+missed>0 ? Math.round(caught/(caught+missed)*100) : 0;
   gameEndScore=score; gameEndLevel=levelIdx+1; gameEndAccuracy=accuracy;
 
   if(score>best){
     best=score;
-    localStorage.setItem('citrus_best',best);
+    try{ localStorage.setItem('citrus_best',best); }catch(e){}  // fix #9
     bestDisp.textContent=best;
   }
 
@@ -1424,8 +1566,8 @@ function endGame(reason){
   setFace('sad');
   document.getElementById('gameOverScreen').style.display='flex';
 
-  // Sad speech
-  if('speechSynthesis' in window){
+  // Sad speech — gated by sfxOn (fix #21)
+  if(sfxOn && 'speechSynthesis' in window){
     setTimeout(()=>{
       const u=new SpeechSynthesisUtterance(
         reason==='starved'?'i am so hungry. why did you fail me.':'you let them all fall. asshole.'
@@ -1446,6 +1588,30 @@ document.getElementById('shareBtn').addEventListener('click', ()=>{
   }).catch(()=>{
     showToast('📋 ' + text);
   });
+});
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD CONTROLS (fix #20)
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' || e.key==='p' || e.key==='P'){
+    if(gs==='playing') togglePause();
+  }
+  if(e.key===' ' || e.key==='Enter'){
+    if(gs==='start'){
+      e.preventDefault();
+      startGame();
+    } else if(gs==='over'){
+      e.preventDefault();
+      initStartScreen();
+      startGame();
+    }
+  }
+});
+
+// fix #16: re-cache kitten position on window resize
+window.addEventListener('resize', ()=>{
+  if(gs==='playing') cacheKittenPos();
 });
 
 // ═══════════════════════════════════════════════════════
