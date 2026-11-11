@@ -933,7 +933,7 @@ export function initCitrusKittenApp() {
     sound.playMeow(combo);
 
     speechBiteCount++;
-    if (speechBiteCount % 8 === 0) {
+    if (speechBiteCount % 5 === 0) {
       sound.playBiteVoice(speechBiteCount);
     }
 
@@ -1408,14 +1408,14 @@ export function initCitrusKittenApp() {
     const goStats = document.getElementById('gameOverStats');
     if (goStats) {
       goStats.innerHTML = `
-        <span>Mode</span><b>${GAME_MODES[selectedMode].name}</b>
-        <span>Final Score</span><b>${score}</b>
-        <span>High Score</span><b>${best}</b>
-        <span>Level Reached</span><b>${levelIdx + 1}</b>
-        <span>Citrus Caught</span><b>${caught}</b>
-        <span>Citrus Missed</span><b>${missed}</b>
-        <span>Accuracy</span><b>${accuracy}%</b>
-        <span>Best Combo</span><b>x${Math.min(8, maxComboThisGame)} (${maxComboThisGame})</b>
+        <div class="stat-tile"><span>Score</span><b>${score}</b></div>
+        <div class="stat-tile"><span>Best</span><b>${best}</b></div>
+        <div class="stat-tile"><span>Level</span><b>${levelIdx + 1}</b></div>
+        <div class="stat-tile"><span>Mode</span><b>${GAME_MODES[selectedMode].badge}</b></div>
+        <div class="stat-tile"><span>Caught</span><b>${caught}</b></div>
+        <div class="stat-tile"><span>Missed</span><b>${missed}</b></div>
+        <div class="stat-tile"><span>Accuracy</span><b>${accuracy}%</b></div>
+        <div class="stat-tile"><span>Combo</span><b>x${Math.min(8, maxComboThisGame)}</b></div>
       `;
     }
 

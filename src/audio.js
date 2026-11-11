@@ -1,11 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  CITRUS KITTEN (CANTRONN) — WEB AUDIO SYNTH & SPEECH ENGINE
+//  CITRUS KITTEN (CANTRONN) — WEB AUDIO SYNTH & EXPRESSIVE VOICE ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PENTA_NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C4 Pentatonic
 const FEVER_NOTES = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50]; // C5 Pentatonic
-const BASE_BEAT_DUR = 60 / 105; // ~0.57s per beat
+const BASE_BEAT_DUR = 60 / 106;
 const MAX_PURR_VOL = 0.22;
+
+// Novelty/broken system voices on macOS/browsers to exclude
+const NOVELTY_VOICE_RE =
+  /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|organ|trinoids|whisper|zarvox|jester|wobble|superstar/i;
 
 export class SoundEngine {
   constructor(initialSettings = {}) {
@@ -30,9 +34,17 @@ export class SoundEngine {
 
     this.speechBusy = false;
     this.speechSafetyTimer = null;
+    this.lastMeowTime = 0;
+    this.cachedVoices = [];
 
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.addEventListener?.('voiceschanged', () => {});
+      const loadVoices = () => {
+        try {
+          this.cachedVoices = window.speechSynthesis.getVoices() || [];
+        } catch (e) {}
+      };
+      loadVoices();
+      window.speechSynthesis.addEventListener?.('voiceschanged', loadVoices);
     }
   }
 
@@ -59,8 +71,8 @@ export class SoundEngine {
 
     const lpf = ctx.createBiquadFilter();
     lpf.type = 'lowpass';
-    lpf.frequency.value = 320;
-    lpf.Q.value = 1.2;
+    lpf.frequency.value = 300;
+    lpf.Q.value = 1.4;
     lpf.connect(this.purrGain);
 
     const trem = ctx.createGain();
@@ -69,7 +81,7 @@ export class SoundEngine {
 
     const lfo = ctx.createOscillator();
     lfo.type = 'sine';
-    lfo.frequency.value = 26;
+    lfo.frequency.value = 25;
     const lfoD = ctx.createGain();
     lfoD.gain.value = 0.55;
     lfo.connect(lfoD);
@@ -77,14 +89,14 @@ export class SoundEngine {
     lfo.start();
 
     [
-      [30, 0.6],
-      [60, 0.28],
-      [90, 0.12],
+      [29, 0.58],
+      [58, 0.28],
+      [87, 0.12],
     ].forEach(([freq, w], i) => {
       const o = ctx.createOscillator();
       o.type = 'sawtooth';
       o.frequency.value = freq;
-      o.detune.value = i * 7;
+      o.detune.value = i * 6;
       const g = ctx.createGain();
       g.gain.value = w;
       o.connect(g);
@@ -94,7 +106,7 @@ export class SoundEngine {
 
     // 2. Background Music Bus
     this.musicGain = ctx.createGain();
-    this.musicGain.gain.setValueAtTime(this.musicOn ? 0.06 : 0, ctx.currentTime);
+    this.musicGain.gain.setValueAtTime(this.musicOn ? 0.055 : 0, ctx.currentTime);
     this.musicGain.connect(ctx.destination);
 
     // 3. SFX Bus
@@ -121,7 +133,7 @@ export class SoundEngine {
       const now = this.audioCtx.currentTime;
       if (this.musicGain) {
         this.musicGain.gain.cancelScheduledValues(now);
-        this.musicGain.gain.setTargetAtTime(this.musicOn ? 0.06 : 0, now, 0.15);
+        this.musicGain.gain.setTargetAtTime(this.musicOn ? 0.055 : 0, now, 0.15);
       }
       if (this.sfxGain) {
         this.sfxGain.gain.setValueAtTime(this.sfxOn ? 1.0 : 0, now);
@@ -202,7 +214,7 @@ export class SoundEngine {
 
       const env = ctx.createGain();
       env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(this.feverActive ? 0.6 : 0.48, t + 0.04);
+      env.gain.linearRampToValueAtTime(this.feverActive ? 0.55 : 0.45, t + 0.04);
       env.gain.exponentialRampToValueAtTime(0.001, t + beatDur * 0.82);
 
       osc.connect(env);
@@ -214,14 +226,13 @@ export class SoundEngine {
         env.disconnect();
       };
 
-      // Subtle bass note every 4 steps
       if (stepIndex % 4 === 0) {
         const bass = ctx.createOscillator();
         bass.type = 'sine';
         bass.frequency.setValueAtTime(freq * 0.5, t);
         const bEnv = ctx.createGain();
         bEnv.gain.setValueAtTime(0, t);
-        bEnv.gain.linearRampToValueAtTime(0.32, t + 0.03);
+        bEnv.gain.linearRampToValueAtTime(0.3, t + 0.03);
         bEnv.gain.exponentialRampToValueAtTime(0.001, t + beatDur * 1.5);
         bass.connect(bEnv);
         bEnv.connect(this.musicGain);
@@ -244,7 +255,7 @@ export class SoundEngine {
     this.musicOn = Boolean(on);
     if (this.audioCtx && this.musicGain) {
       this.musicGain.gain.setTargetAtTime(
-        this.musicOn && this.isPlaying ? 0.06 : 0,
+        this.musicOn && this.isPlaying ? 0.055 : 0,
         this.audioCtx.currentTime,
         0.2
       );
@@ -273,45 +284,78 @@ export class SoundEngine {
 
   setPurrVol(pct) {
     if (!this.purrGain || !this.audioCtx) return;
-    const target = this.sfxOn && this.isPlaying ? Math.sqrt(Math.max(0, pct) / 100) * MAX_PURR_VOL : 0;
+    const target =
+      this.sfxOn && this.isPlaying ? Math.sqrt(Math.max(0, pct) / 100) * MAX_PURR_VOL : 0;
     this.purrGain.gain.setTargetAtTime(target, this.audioCtx.currentTime, 0.45);
   }
 
-  // ── Procedural Sound Effects ──
+  // ── Expressive Procedural Cat Vocalizations & SFX ──
 
   playMeow(combo = 1) {
     if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
     const ctx = this.audioCtx;
     const now = ctx.currentTime;
-    const root = 480 + Math.min(combo * 15, 140) + Math.random() * 120;
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(root * 0.75, now);
-    osc.frequency.linearRampToValueAtTime(root * 1.35, now + 0.12);
-    osc.frequency.linearRampToValueAtTime(root * 0.6, now + 0.38);
-    osc.frequency.linearRampToValueAtTime(root * 0.45, now + 0.55);
+    // Throttle rapid meows during multi-slice so oscillators don't clash
+    if (now - this.lastMeowTime < 0.16) return;
+    this.lastMeowTime = now;
 
-    const filt = ctx.createBiquadFilter();
-    filt.type = 'bandpass';
-    filt.frequency.setValueAtTime(900, now);
-    filt.frequency.linearRampToValueAtTime(1400, now + 0.12);
-    filt.frequency.linearRampToValueAtTime(700, now + 0.5);
-    filt.Q.value = 3.5;
+    // Dual-formant expressive cat chirp/mew
+    const pattern = Math.floor(Math.random() * 3);
+    const root = 520 + Math.min(combo * 18, 160) + (Math.random() - 0.5) * 70;
+    const dur = pattern === 0 ? 0.34 : pattern === 1 ? 0.46 : 0.4;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+
+    if (pattern === 0) {
+      // Quick happy "mrrp!" upward chirp
+      osc.frequency.setValueAtTime(root * 0.72, now);
+      osc.frequency.exponentialRampToValueAtTime(root * 1.38, now + 0.14);
+      osc.frequency.exponentialRampToValueAtTime(root * 1.05, now + dur);
+    } else if (pattern === 1) {
+      // Classic melodic "me-ow~" arc
+      osc.frequency.setValueAtTime(root * 0.85, now);
+      osc.frequency.exponentialRampToValueAtTime(root * 1.42, now + 0.13);
+      osc.frequency.exponentialRampToValueAtTime(root * 0.76, now + 0.36);
+      osc.frequency.linearRampToValueAtTime(root * 0.65, now + dur);
+    } else {
+      // Cute double "mew-mew!" bounce
+      osc.frequency.setValueAtTime(root * 0.9, now);
+      osc.frequency.exponentialRampToValueAtTime(root * 1.3, now + 0.1);
+      osc.frequency.setValueAtTime(root * 0.95, now + 0.18);
+      osc.frequency.exponentialRampToValueAtTime(root * 1.45, now + 0.3);
+      osc.frequency.exponentialRampToValueAtTime(root * 0.88, now + dur);
+    }
+
+    // Vowel formant filter (transitions from "ee" to "ah/oh")
+    const formant1 = ctx.createBiquadFilter();
+    formant1.type = 'bandpass';
+    formant1.frequency.setValueAtTime(1100, now);
+    formant1.frequency.exponentialRampToValueAtTime(1650, now + dur * 0.35);
+    formant1.frequency.exponentialRampToValueAtTime(850, now + dur);
+    formant1.Q.value = 4.2;
+
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 2600;
 
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0, now);
-    env.gain.linearRampToValueAtTime(0.35, now + 0.04);
-    env.gain.setValueAtTime(0.35, now + 0.06);
-    env.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    env.gain.setValueAtTime(0.001, now);
+    env.gain.linearRampToValueAtTime(0.28, now + 0.035);
+    env.gain.setValueAtTime(0.26, now + dur * 0.45);
+    env.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
-    osc.connect(filt);
-    filt.connect(env);
+    osc.connect(formant1);
+    formant1.connect(lpf);
+    lpf.connect(env);
     env.connect(this.sfxGain);
+
     osc.start(now);
-    osc.stop(now + 0.65);
+    osc.stop(now + dur + 0.02);
     osc.onended = () => {
       osc.disconnect();
-      filt.disconnect();
+      formant1.disconnect();
+      lpf.disconnect();
       env.disconnect();
     };
   }
@@ -320,20 +364,22 @@ export class SoundEngine {
     if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
     const ctx = this.audioCtx;
     const now = ctx.currentTime;
-    const pitchMult = 1 + Math.min(combo, 8) * 0.05;
+    const pitchMult = 1 + Math.min(combo, 8) * 0.055;
+
+    // Crisp juicy pop transient
     const osc = ctx.createOscillator();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(860 * pitchMult, now);
-    osc.frequency.linearRampToValueAtTime(440 * pitchMult, now + 0.08);
+    osc.frequency.setValueAtTime(520 * pitchMult, now);
+    osc.frequency.exponentialRampToValueAtTime(1120 * pitchMult, now + 0.065);
 
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0.2, now);
-    env.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    env.gain.setValueAtTime(0.22, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
     osc.connect(env);
     env.connect(this.sfxGain);
     osc.start(now);
-    osc.stop(now + 0.12);
+    osc.stop(now + 0.1);
     osc.onended = () => {
       osc.disconnect();
       env.disconnect();
@@ -344,10 +390,10 @@ export class SoundEngine {
     if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
     const ctx = this.audioCtx;
     const now = ctx.currentTime;
-    [587.33, 880, 1174.66].forEach((freq, idx) => {
+    [587.33, 880, 1174.66, 1567.98].forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       osc.type = 'triangle';
-      const t = now + idx * 0.045;
+      const t = now + idx * 0.04;
       osc.frequency.setValueAtTime(freq, t);
       const env = ctx.createGain();
       env.gain.setValueAtTime(0.18, t);
@@ -370,7 +416,7 @@ export class SoundEngine {
     [440, 554.37, 659.25, 880].forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       osc.type = 'sine';
-      const t = now + idx * 0.05;
+      const t = now + idx * 0.048;
       osc.frequency.setValueAtTime(freq, t);
       const env = ctx.createGain();
       env.gain.setValueAtTime(0.18, t);
@@ -411,7 +457,7 @@ export class SoundEngine {
     if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
     const ctx = this.audioCtx;
     const now = ctx.currentTime;
-    const bufLen = Math.floor(ctx.sampleRate * 0.4);
+    const bufLen = Math.floor(ctx.sampleRate * 0.38);
     const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < bufLen; i++) {
@@ -421,17 +467,17 @@ export class SoundEngine {
     src.buffer = buf;
     const filt = ctx.createBiquadFilter();
     filt.type = 'bandpass';
-    filt.frequency.setValueAtTime(400, now);
-    filt.frequency.linearRampToValueAtTime(2400, now + 0.4);
-    filt.Q.value = 1.5;
+    filt.frequency.setValueAtTime(450, now);
+    filt.frequency.linearRampToValueAtTime(2200, now + 0.38);
+    filt.Q.value = 1.6;
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0.3, now);
-    env.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    env.gain.setValueAtTime(0.26, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
     src.connect(filt);
     filt.connect(env);
     env.connect(this.sfxGain);
     src.start(now);
-    src.stop(now + 0.45);
+    src.stop(now + 0.42);
     src.onended = () => {
       src.disconnect();
       filt.disconnect();
@@ -445,22 +491,22 @@ export class SoundEngine {
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(800, now);
-    osc.frequency.linearRampToValueAtTime(220, now + 0.5);
+    osc.frequency.setValueAtTime(680, now);
+    osc.frequency.exponentialRampToValueAtTime(190, now + 0.42);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.28, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    g.gain.setValueAtTime(0.24, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
     osc.connect(g);
     g.connect(this.sfxGain);
     osc.start(now);
-    osc.stop(now + 0.6);
+    osc.stop(now + 0.5);
     osc.onended = () => {
       osc.disconnect();
       g.disconnect();
     };
   }
 
-  // ── Speech Synthesis ──
+  // ── Smart Voice Selection & Natural Speech Synthesis ──
 
   cancelSpeech() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -468,18 +514,57 @@ export class SoundEngine {
     }
   }
 
-  speakIt(text, pitchV = 1.0, rateV = 1.0) {
+  pickBestVoice(style = 'unhinged') {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const allVoices =
+      this.cachedVoices.length > 0
+        ? this.cachedVoices
+        : window.speechSynthesis.getVoices() || [];
+    if (!allVoices.length) return null;
+
+    // Filter to English voices and exclude broken/novelty voices
+    const englishVoices = allVoices.filter(
+      (v) => /^en(-|_|$)/i.test(v.lang || '') && !NOVELTY_VOICE_RE.test(v.name || '')
+    );
+    const pool = englishVoices.length > 0 ? englishVoices : allVoices;
+
+    if (style === 'wholesome') {
+      // Prefer natural, bright, expressive voices
+      const preferredWholesome = [
+        /natural|neural|premium|enhanced/i,
+        /samantha|ava|allison|victoria|karen|moira|tessa|google us english/i,
+      ];
+      for (const regex of preferredWholesome) {
+        const match = pool.find((v) => regex.test(v.name));
+        if (match) return match;
+      }
+      return pool.find((v) => v.default) || pool[0];
+    }
+
+    // For 'unhinged': prefer clear, deadpan, resonant voices
+    const preferredDeadpan = [
+      /daniel|alex|arthur|oliver|aaron|rishi|google uk english male|reed|evan|nathan/i,
+      /natural|neural|premium|enhanced/i,
+      /samantha|google us english/i,
+    ];
+    for (const regex of preferredDeadpan) {
+      const match = pool.find((v) => regex.test(v.name));
+      if (match) return match;
+    }
+    return pool.find((v) => v.default) || pool[0];
+  }
+
+  speakIt(text, pitchV = 1.0, rateV = 1.0, style = this.voiceMode) {
     if (!this.sfxOn || this.voiceMode === 'off') return null;
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
     try {
-      const voices = window.speechSynthesis.getVoices();
-      const v =
-        voices.find((voice) => /male|deep|uk|daniel|alex/i.test(voice.name)) || voices[0];
       const u = new SpeechSynthesisUtterance(text);
-      u.pitch = pitchV;
-      u.rate = rateV;
-      u.volume = 0.9;
-      if (v) u.voice = v;
+      const chosenVoice = this.pickBestVoice(style);
+      if (chosenVoice) u.voice = chosenVoice;
+      // Keep pitch & rate in the clean, natural, non-garbled sweet spot
+      u.pitch = Math.max(0.55, Math.min(1.45, pitchV));
+      u.rate = Math.max(0.78, Math.min(1.25, rateV));
+      u.volume = 0.92;
       window.speechSynthesis.speak(u);
       return u;
     } catch (e) {
@@ -494,28 +579,36 @@ export class SoundEngine {
 
     if (this.voiceMode === 'wholesome') {
       const phrases = [
-        'thank you! so yummy!',
-        'purrfect citrus!',
-        'nom nom nom, more oranges please!',
-        'vitamin C secured!',
+        'Mmm, thank you! That orange was so sweet!',
+        'Purrfect catch! More citrus please!',
+        'Yummy! Vitamin C secured!',
+        'Nom nom nom! Best orchard ever!',
+        'So juicy! My tummy is super happy!',
+        'Ooh, right in the paws! Delicious!',
       ];
-      const u = this.speakIt(phrases[Math.floor(Math.random() * phrases.length)], 1.35, 1.05);
+      const line = phrases[Math.floor(Math.random() * phrases.length)];
+      const u = this.speakIt(line, 1.24 + (Math.random() - 0.5) * 0.08, 1.04, 'wholesome');
       this.armSpeechReset(u);
       return;
     }
 
-    // Classic 'unhinged' mode
-    const pitch = Math.max(0, 1.0 - (biteCount - 1) * 0.045);
-    const rate = Math.max(0.35, 0.85 - (biteCount - 1) * 0.025);
-    const tp = ['thank you', 'thank yoooou', 'thaaaaank you', 'thank you for the orange'];
-    const dp = ['yes daddy', 'yes. daddy.', 'yeeees daddy', 'yes daddy. more orange.'];
-    const u1 = this.speakIt(tp[Math.floor(Math.random() * tp.length)], pitch, rate);
-    const u2 = this.speakIt(
-      dp[Math.floor(Math.random() * dp.length)],
-      Math.max(0, pitch * 0.7),
-      Math.max(0.3, rate * 0.85)
-    );
-    this.armSpeechReset(u2 || u1);
+    // Classic 'unhinged' deadpan comedy mode — crisp, clear, and progressively deeper without robotic distortion
+    const depthStep = Math.min(12, Math.floor(biteCount / 6));
+    const pitch = Math.max(0.58, 0.92 - depthStep * 0.028);
+    const rate = Math.max(0.82, 0.95 - depthStep * 0.01);
+
+    const unhingedLines = [
+      'Thank you... yes daddy. More orange.',
+      'Mmm. Thank you for the citrus, daddy.',
+      'Yes. Feed the kitty. Do not stop.',
+      'Exquisite acidity. Give me another one.',
+      'Thank yoooou... yes daddy, keep them coming.',
+      'My hunger is eternal. Feed me faster.',
+      'Oh yes. That is the good vitamin C.',
+    ];
+    const line = unhingedLines[Math.floor(Math.random() * unhingedLines.length)];
+    const u = this.speakIt(line, pitch, rate, 'unhinged');
+    this.armSpeechReset(u);
   }
 
   playMissVoice() {
@@ -524,49 +617,62 @@ export class SoundEngine {
     this.speechBusy = false;
 
     if (this.voiceMode === 'wholesome') {
-      const lines = ['oh no, my orange!', 'oops, we missed one!', 'my citrus splatted!'];
-      this.speakIt(lines[Math.floor(Math.random() * lines.length)], 1.2, 1.0);
+      const lines = [
+        'Oh no, my orange splatted!',
+        'Oops, we missed one! Watch out!',
+        'Come back, little orange!',
+        'Aw, right on the floor!',
+      ];
+      const u = this.speakIt(
+        lines[Math.floor(Math.random() * lines.length)],
+        1.18,
+        1.02,
+        'wholesome'
+      );
+      this.armSpeechReset(u);
       return;
     }
 
     const lines = [
-      'you are an asshole',
-      'slow down, you asshole',
-      'asshole. i said savour it.',
-      'you absolute asshole. slow. down.',
+      'You dropped my orange, you absolute donkey.',
+      'Are you serious right now? Pick it up.',
+      'Slow down, you asshole. That was mine.',
+      'Unbelievable. My vitamin C is on the floor.',
+      'Focus! You are starving the cat!',
     ];
-    this.speakIt(lines[Math.floor(Math.random() * lines.length)], 0.1, 0.7);
+    const u = this.speakIt(lines[Math.floor(Math.random() * lines.length)], 0.65, 0.88, 'unhinged');
+    this.armSpeechReset(u);
   }
 
   playGameOverVoice(reason) {
     if (!this.sfxOn || this.voiceMode === 'off') return;
     setTimeout(() => {
-      if (this.isPlaying) return; // Don't speak if player already started a new game!
+      if (this.isPlaying) return;
       if (this.voiceMode === 'wholesome') {
         const msg =
           reason === 'starved'
-            ? 'my tummy is rumbling. feed me again soon!'
+            ? 'My tummy is rumbling! Let us play again and catch more oranges!'
             : reason === 'time_up'
-            ? 'time is up! great job catching oranges!'
-            : 'all out of lives! let us try again!';
-        this.speakIt(msg, 1.2, 0.95);
+            ? 'Time is up! Great job catching all that citrus!'
+            : 'All out of lives! Ready for another round?';
+        this.speakIt(msg, 1.2, 1.0, 'wholesome');
       } else {
         const msg =
           reason === 'starved'
-            ? 'i am so hungry. why did you fail me.'
+            ? 'I am literally starving. Why did you fail me like this.'
             : reason === 'time_up'
-            ? 'time is up. feed me faster next time.'
-            : 'you let them all fall. asshole.';
-        this.speakIt(msg, 0, 0.5);
+            ? 'Time is up. Honestly, not terrible. Feed me again.'
+            : 'You let them all fall. Absolute disaster. Hit play again.';
+        this.speakIt(msg, 0.62, 0.85, 'unhinged');
       }
-    }, 350);
+    }, 320);
   }
 
   armSpeechReset(utterance) {
     clearTimeout(this.speechSafetyTimer);
     this.speechSafetyTimer = setTimeout(() => {
       this.speechBusy = false;
-    }, 5000);
+    }, 4500);
     const reset = () => {
       this.speechBusy = false;
       clearTimeout(this.speechSafetyTimer);
