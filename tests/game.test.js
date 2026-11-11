@@ -35,6 +35,7 @@ import {
 } from '../src/storage.js';
 
 import { SoundEngine } from '../src/audio.js';
+import { UI_ICONS, getFruitSpriteSVG } from '../src/assets.js';
 import { segmentIntersectsCircle } from '../src/fx.js';
 import { initCitrusKittenApp } from '../src/game.js';
 import { buildProject } from '../scripts/build.js';
@@ -304,6 +305,7 @@ test('End-to-end game lifecycle: startGame, catchOrange, missOrange, shield, gam
       return elements.get(id);
     },
     createElement: (tag) => makeEl(tag),
+    querySelectorAll: () => [],
     addEventListener: () => {},
   };
 
@@ -315,13 +317,14 @@ test('End-to-end game lifecycle: startGame, catchOrange, missOrange, shield, gam
   let state = app.getState();
   assert.equal(state.gs, 'playing');
   assert.equal(state.lives, 3);
-  assert.equal(elements.get('lives').innerHTML, '❤️❤️❤️');
+  assert.equal(elements.get('lives').innerHTML, UI_ICONS.heartFull.repeat(3));
 
   // 2. Spawn and catch a Golden Orange
   app.spawnOrange('golden');
   state = app.getState();
   const goldenObj = state.oranges.find((o) => o.fruitType === 'golden');
   assert.ok(goldenObj, 'Golden orange should be spawned');
+  assert.ok(goldenObj.el.innerHTML.includes('<svg class="fruit-svg golden-svg"'));
   app.catchOrange(goldenObj, 'tap');
 
   state = app.getState();
@@ -339,19 +342,31 @@ test('End-to-end game lifecycle: startGame, catchOrange, missOrange, shield, gam
   state = app.getState();
   assert.equal(state.gs, 'over');
   assert.equal(state.lives, 0);
-  assert.equal(elements.get('lives').innerHTML, '🖤🖤🖤');
+  assert.equal(elements.get('lives').innerHTML, UI_ICONS.heartEmpty.repeat(3));
 
-  // 4. Start Game 2 (Regression test for Bug #1: #lives must reset to ❤️❤️❤️!)
+  // 4. Start Game 2 (Regression test for Bug #1: #lives must reset to 3 full SVG hearts!)
   app.startGame();
   state = app.getState();
   assert.equal(state.gs, 'playing');
   assert.equal(state.lives, 3);
   assert.equal(
     elements.get('lives').innerHTML,
-    '❤️❤️❤️',
-    'HUD #lives must reset from 🖤🖤🖤 back to ❤️❤️❤️ on Play Again!'
+    UI_ICONS.heartFull.repeat(3),
+    'HUD #lives must reset from empty hearts back to 3 full SVG hearts on Play Again!'
   );
 
   app.endGame('no_lives');
+});
+
+test('Custom vector sprite generator produces bespoke SVG artwork for all fruit and power-up types', () => {
+  for (const type of ['normal', 'golden', 'tangerine', 'giant', 'lemon']) {
+    const svg = getFruitSpriteSVG(type);
+    assert.ok(svg.startsWith('<svg class="fruit-svg'), `Expected SVG sprite for ${type}`);
+    assert.ok(svg.includes('#3a1b06'), `Expected unified ink outline on ${type}`);
+  }
+  for (const ptype of ['slowTime', 'magnet', 'shield', 'frenzy']) {
+    const svg = getFruitSpriteSVG('powerup', ptype);
+    assert.ok(svg.includes('powerup-orb'), `Expected power-up orb SVG for ${ptype}`);
+  }
 });
 

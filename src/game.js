@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  CITRUS KITTEN (CANTRONN) — CORE GAME ENGINE & UI CONTROLLER
+//  CITRUS KITTEN (CANTRONN) — CORE GAME ENGINE & TACTILE UI CONTROLLER
 // ═══════════════════════════════════════════════════════════════════════════
 
 import {
@@ -30,6 +30,7 @@ import {
   saveSelectedSkin,
 } from './storage.js';
 
+import { UI_ICONS, getFruitSpriteSVG } from './assets.js';
 import { SoundEngine } from './audio.js';
 import { CanvasFX, segmentIntersectsCircle } from './fx.js';
 
@@ -65,6 +66,18 @@ export function initCitrusKittenApp() {
   const sfxToggle = document.getElementById('sfxToggle');
   const voiceToggle = document.getElementById('voiceToggle');
 
+  // Populate Dock SVG Icons
+  const dockMap = {
+    dockIconWardrobe: UI_ICONS.wardrobe,
+    dockIconTrophy: UI_ICONS.trophy,
+    dockIconMedals: UI_ICONS.medals,
+    dockIconGuide: UI_ICONS.guide,
+  };
+  Object.entries(dockMap).forEach(([id, svg]) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = svg;
+  });
+
   // ── Persistent State & Subsystems ──
   const settings = getSettings();
   const sound = new SoundEngine(settings);
@@ -74,9 +87,9 @@ export function initCitrusKittenApp() {
   let selectedMode = 'classic';
   let selectedSkin = getSelectedSkin();
 
-  bestDisp.textContent = best;
+  if (bestDisp) bestDisp.textContent = String(best);
   const startBestEl = document.getElementById('startBest');
-  if (startBestEl) startBestEl.textContent = best;
+  if (startBestEl) startBestEl.textContent = String(best);
 
   // ── Runtime Game State ──
   let gs = 'start'; // 'start' | 'playing' | 'over'
@@ -108,7 +121,7 @@ export function initCitrusKittenApp() {
   let levelFrozen = false;
   let paused = false;
   let pausedAt = 0;
-  let prevLives = -1; // Initialized to -1 so first updateHUD always renders!
+  let prevLives = -1; // Always renders initial lives on startGame!
   let displayedScore = 0;
   let maxComboThisGame = 0;
   let missesThisLevel = 0;
@@ -120,10 +133,10 @@ export function initCitrusKittenApp() {
   let shieldActive = false;
 
   // Kitten Horizontal Movement & Hitbox Cache
-  let kittenRatioX = 0.5; // 0.12 to 0.88 across screen width
+  let kittenRatioX = 0.5;
   let kitCX = 0;
   let kitCY = 0;
-  let hudOffsetTop = 60;
+  let hudOffsetTop = 64;
   const keysHeld = { left: false, right: false, shift: false };
   let draggingKitten = false;
 
@@ -132,25 +145,28 @@ export function initCitrusKittenApp() {
   let lastSwipePt = null;
   let swipeCatchCount = 0;
 
-  // ── Audio & Voice Controls Setup ──
+  // ── Audio & Voice Controls Setup (Custom SVG Icons) ──
   function syncAudioButtons() {
     if (musicToggle) {
-      musicToggle.textContent = sound.musicOn ? '🔊' : '🔇';
+      musicToggle.innerHTML = sound.musicOn ? UI_ICONS.musicOn : UI_ICONS.musicOff;
       musicToggle.title = sound.musicOn ? 'Music: ON' : 'Music: OFF';
     }
     if (sfxToggle) {
-      sfxToggle.textContent = sound.sfxOn ? '🔔' : '🔕';
+      sfxToggle.innerHTML = sound.sfxOn ? UI_ICONS.sfxOn : UI_ICONS.sfxOff;
       sfxToggle.title = sound.sfxOn ? 'SFX & Purr: ON' : 'SFX & Purr: OFF';
     }
     if (voiceToggle) {
-      const icon =
+      const iconSvg =
         sound.voiceMode === 'unhinged'
-          ? '🌶️'
+          ? UI_ICONS.voiceUnhinged
           : sound.voiceMode === 'wholesome'
-          ? '😇'
-          : '🙊';
-      voiceToggle.textContent = icon;
+          ? UI_ICONS.voiceWholesome
+          : UI_ICONS.voiceOff;
+      voiceToggle.innerHTML = iconSvg;
       voiceToggle.title = `Voice Mode: ${sound.voiceMode.toUpperCase()} (Click to cycle)`;
+    }
+    if (pauseBtn && !paused) {
+      pauseBtn.innerHTML = UI_ICONS.pause;
     }
   }
   syncAudioButtons();
@@ -178,11 +194,48 @@ export function initCitrusKittenApp() {
     saveSettings(settings);
     syncAudioButtons();
     const labelMap = {
-      unhinged: '🌶️ Voice: Classic Unhinged',
-      wholesome: '😇 Voice: Cute & Wholesome',
-      off: '🙊 Voice: Off (SFX Only)',
+      unhinged: 'Voice: Classic Unhinged',
+      wholesome: 'Voice: Cute & Wholesome',
+      off: 'Voice: Off (SFX Only)',
     };
     showToast(labelMap[next], 1800);
+  });
+
+  // ── Sub-Modal Drawer System on Title Screen ──
+  const modalBackdrop = document.getElementById('gameModalBackdrop');
+  const modalTitle = document.getElementById('gameModalTitle');
+  const modalClose = document.getElementById('gameModalClose');
+
+  function openDrawerModal(paneId) {
+    if (!modalBackdrop) return;
+    const titles = {
+      wardrobeModal: 'Kitten Wardrobe',
+      leaderboardModal: 'Top 10 & Career Stats',
+      achievementsModal: 'Orchard Badges',
+      guideModal: 'Orchard Field Guide',
+    };
+    if (modalTitle) modalTitle.textContent = titles[paneId] || 'Menu';
+    ['wardrobeModal', 'leaderboardModal', 'achievementsModal', 'guideModal'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = id === paneId ? 'block' : 'none';
+    });
+    modalBackdrop.style.display = 'flex';
+  }
+
+  function closeDrawerModal() {
+    if (modalBackdrop) modalBackdrop.style.display = 'none';
+  }
+
+  document.querySelectorAll?.('.dock-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-modal');
+      if (target) openDrawerModal(target);
+    });
+  });
+
+  modalClose?.addEventListener('click', closeDrawerModal);
+  modalBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) closeDrawerModal();
   });
 
   // ── Kitten Skins & SVG Appearance ──
@@ -218,9 +271,6 @@ export function initCitrusKittenApp() {
       const el = document.getElementById(domId);
       if (el) el.style.display = skin.accessory === key ? '' : 'none';
     });
-
-    const startEmoji = document.getElementById('startKittenEmoji');
-    if (startEmoji) startEmoji.textContent = skin.icon;
   }
 
   function renderModeSelector() {
@@ -230,7 +280,7 @@ export function initCitrusKittenApp() {
       .map(
         (m) => `
       <div class="mode-card ${m.id === selectedMode ? 'selected' : ''}" data-mode="${m.id}">
-        <span class="mode-icon">${m.icon}</span>
+        <span class="mode-icon">${UI_ICONS[m.iconKey] || UI_ICONS.modeClassic}</span>
         <div>
           <div class="mode-title">${m.name}</div>
           <div class="mode-desc">${m.desc}</div>
@@ -261,7 +311,11 @@ export function initCitrusKittenApp() {
         <button type="button" class="skin-chip ${isSel ? 'selected' : ''} ${
         open ? '' : 'locked'
       }" data-skin-id="${skin.id}" title="${open ? skin.name : skin.unlockText}">
-          ${skin.icon} ${skin.name} ${open ? '' : '🔒'}
+          <span class="skin-swatch" style="background:linear-gradient(135deg, ${
+            skin.colors.fur
+          } 55%, ${skin.colors.stripes} 55%)"></span>
+          <span>${skin.name}</span>
+          <small>${open ? (isSel ? 'EQUIPPED' : 'UNLOCKED') : skin.unlockText}</small>
         </button>
       `;
     }).join('');
@@ -272,12 +326,12 @@ export function initCitrusKittenApp() {
         const skin = KITTEN_SKINS.find((s) => s.id === id);
         if (!skin) return;
         if (!skin.isUnlocked(getUnlockedAchievements(), getSessionStats())) {
-          showToast(`🔒 ${skin.unlockText}`, 2200);
+          showToast(`Locked: ${skin.unlockText}`, 2200);
           return;
         }
         applyKittenSkin(id);
         renderWardrobe();
-        showToast(`${skin.icon} Equipped ${skin.name}!`, 1600);
+        showToast(`Equipped ${skin.name}!`, 1600);
       });
     });
   }
@@ -289,15 +343,15 @@ export function initCitrusKittenApp() {
       container.innerHTML = '';
       return;
     }
-    let html = '<div class="leaderboard"><h3>🏆 Top 10 High Scores</h3>';
+    let html = '<div class="leaderboard"><h3>Top 10 High Scores</h3>';
     lb.forEach((e, i) => {
       const acc = typeof e.accuracy === 'number' ? e.accuracy + '%' : '?';
       const date = e.date ? new Date(e.date).toLocaleDateString() : '';
-      const modeTag = e.mode && GAME_MODES[e.mode] ? GAME_MODES[e.mode].icon : '🎮';
+      const modeBadge = e.mode && GAME_MODES[e.mode] ? GAME_MODES[e.mode].badge : 'CLASSIC';
       html += `<div class="lb-row">
-        <span class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1 + '.'}</span>
-        <span class="lb-score">${e.score} <small>${modeTag}</small></span>
-        <span class="lb-detail">Lv${e.level} · ${acc} · ${date}</span>
+        <span class="lb-rank">#${i + 1}</span>
+        <span class="lb-score">${e.score} <small>[${modeBadge}]</small></span>
+        <span class="lb-detail">Lv.${e.level} · ${acc} · ${date}</span>
       </div>`;
     });
     html += '</div>';
@@ -311,18 +365,19 @@ export function initCitrusKittenApp() {
     saveAchievements(unlocked);
     sessionUnlocks.push(id);
     const def = ACHIEVEMENT_DEFS.find((d) => d.id === id);
-    if (def) showToast(`${def.icon} Achievement: ${def.label}!`);
+    if (def) showToast(`BADGE UNLOCKED: ${def.label}!`);
   }
 
   function renderAchievementsUI(container) {
     if (!container) return;
     const unlocked = getUnlockedAchievements();
-    let html = `<div class="achievements-wrap"><h3>🎖️ Achievements (${unlocked.length}/${ACHIEVEMENT_DEFS.length})</h3><div class="ach-grid">`;
+    let html = `<div class="achievements-wrap"><h3>Unlocked Badges (${unlocked.length}/${ACHIEVEMENT_DEFS.length})</h3><div class="ach-grid">`;
     ACHIEVEMENT_DEFS.forEach((d) => {
       const done = unlocked.includes(d.id);
-      html += `<div class="ach-badge ${done ? 'unlocked' : 'locked'}" title="${d.desc}">${
-        d.icon
-      } ${d.label}</div>`;
+      html += `<div class="ach-badge ${done ? 'unlocked' : 'locked'}" title="${d.desc}">
+        <strong>${d.label}</strong>
+        <small>${d.desc}</small>
+      </div>`;
     });
     html += '</div></div>';
     container.innerHTML = html;
@@ -333,17 +388,17 @@ export function initCitrusKittenApp() {
     const el = document.getElementById('startSessionStats');
     if (!el) return;
     if (!s.gamesPlayed) {
-      el.textContent = '';
+      el.textContent = 'Play a round to record your orchard career stats!';
       return;
     }
-    el.textContent = `Games: ${s.gamesPlayed} · Total caught: ${
+    el.textContent = `Games: ${s.gamesPlayed} · Total Caught: ${
       s.totalCaught || 0
-    } · Best combo: x${Math.min(8, s.bestCombo || 0)} (${
+    } · Best Combo: x${Math.min(8, s.bestCombo || 0)} (${
       s.bestCombo || 0
-    } streak) · Best accuracy: ${s.bestAccuracy || 0}%`;
+    } streak) · Best Accuracy: ${s.bestAccuracy || 0}%`;
   }
 
-  function showToast(msg, dur = 2600) {
+  function showToast(msg, dur = 2500) {
     if (!toastEl) return;
     toastEl.textContent = msg;
     toastEl.classList.add('show');
@@ -351,7 +406,7 @@ export function initCitrusKittenApp() {
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), dur);
   }
 
-  // ── Kitten Face & Positioning ──
+  // ── Kitten Face, Eye Tracking & Mouth Anticipation ──
   function setFace(mood) {
     const en = document.getElementById('eyesNormal');
     const eh = document.getElementById('eyesHappy');
@@ -360,16 +415,16 @@ export function initCitrusKittenApp() {
     const mh = document.getElementById('mouthHappy');
     const ms = document.getElementById('mouthSad');
     const tg = document.getElementById('tongue');
-    if (en) en.style.display = mood === 'normal' || mood === 'sad' ? '' : 'none';
+    if (en) en.style.display = mood === 'normal' || mood === 'sad' || mood === 'open' ? '' : 'none';
     if (eh) eh.style.display = mood === 'happy' ? '' : 'none';
     if (es) es.style.display = mood === 'scared' ? '' : 'none';
     if (mn) mn.style.display = mood === 'normal' || mood === 'scared' ? '' : 'none';
-    if (mh) mh.style.display = mood === 'happy' ? '' : 'none';
+    if (mh) mh.style.display = mood === 'happy' || mood === 'open' ? '' : 'none';
     if (ms) ms.style.display = mood === 'sad' ? '' : 'none';
-    if (tg) tg.style.display = mood === 'happy' ? '' : 'none';
+    if (tg) tg.style.display = mood === 'happy' || mood === 'open' ? '' : 'none';
   }
 
-  function flashFace(mood, ms = 580) {
+  function flashFace(mood, ms = 550) {
     setFace(mood);
     clearTimeout(eyeTimer);
     eyeTimer = setTimeout(() => {
@@ -388,15 +443,15 @@ export function initCitrusKittenApp() {
   function cacheKittenPos() {
     if (!kittenWrap || !gameArea) return;
     const areaRect = gameArea.getBoundingClientRect();
-    hudOffsetTop = areaRect.top || 60;
+    hudOffsetTop = areaRect.top || 64;
     const kitRect = kittenWrap.getBoundingClientRect();
-    // Coordinates in gameArea local space:
     kitCX = kitRect.left - areaRect.left + kitRect.width * 0.5;
     kitCY = kitRect.top - areaRect.top + kitRect.height * 0.42;
   }
 
   function updateEyeTracking() {
-    if (!eyeTimer && oranges.length > 0 && pupilL && pupilR) {
+    if (!pupilL || !pupilR) return;
+    if (oranges.length > 0) {
       let nearest = null;
       let bestDist = Infinity;
       for (const o of oranges) {
@@ -407,12 +462,21 @@ export function initCitrusKittenApp() {
         }
       }
       if (nearest) {
-        const dx = Math.max(-4.5, Math.min(4.5, (nearest.x - kitCX) / 55));
-        const dy = Math.max(-3.5, Math.min(3.5, (nearest.y - kitCY) / 75));
-        pupilL.setAttribute('cx', String(213 + dx));
-        pupilL.setAttribute('cy', String(158 + dy));
-        pupilR.setAttribute('cx', String(273 + dx));
-        pupilR.setAttribute('cy', String(158 + dy));
+        const dx = Math.max(-5, Math.min(5, (nearest.x - kitCX) / 50));
+        const dy = Math.max(-4, Math.min(4, (nearest.y - kitCY) / 70));
+        pupilL.setAttribute('cx', String(202 + dx));
+        pupilL.setAttribute('cy', String(160 + dy));
+        pupilR.setAttribute('cx', String(282 + dx));
+        pupilR.setAttribute('cy', String(160 + dy));
+
+        // Open mouth in anticipation when an edible fruit gets close!
+        if (!eyeTimer) {
+          if (nearest.fruitType !== 'lemon' && bestDist < 175) {
+            setFace('open');
+          } else {
+            setFace(hunger < 25 && selectedMode === 'classic' ? 'sad' : 'normal');
+          }
+        }
       }
     }
   }
@@ -422,12 +486,22 @@ export function initCitrusKittenApp() {
     bubble.textContent = msg;
     bubble.classList.add('show');
     clearTimeout(bubbleTimer);
-    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), 1800);
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), 1750);
   }
 
   // ── HUD & Visual Feedback ──
+  function formatLivesMarkup(count) {
+    const fullCount = Math.max(0, Math.min(3, count));
+    const emptyCount = Math.max(0, 3 - fullCount);
+    let html =
+      UI_ICONS.heartFull.repeat(fullCount) + UI_ICONS.heartEmpty.repeat(emptyCount);
+    if (count > 3) {
+      html += `<span class="extra-lives-pill">+${count - 3}</span>`;
+    }
+    return html;
+  }
+
   function updateHUD() {
-    // Score roll-up animation
     if (score !== displayedScore) {
       clearTimeout(scoreRollTimer);
       const diff = score - displayedScore;
@@ -446,36 +520,32 @@ export function initCitrusKittenApp() {
 
     if (levelDisp) levelDisp.textContent = String(levelIdx + 1);
 
-    // Mode-aware Lives / Blitz Timer display (Fixes Bug #1: prevLives reset bug!)
     if (selectedMode === 'blitz') {
       if (livesHudLabel) livesHudLabel.textContent = 'TIME';
       const secs = Math.max(0, Math.ceil(blitzTimeLeft));
-      if (livesDisp) livesDisp.textContent = `⏱️ ${secs}s`;
+      if (livesDisp) livesDisp.textContent = `${secs}s`;
     } else if (selectedMode === 'zen') {
       if (livesHudLabel) livesHudLabel.textContent = 'MODE';
-      if (livesDisp) livesDisp.textContent = '🌸 ZEN';
+      if (livesDisp) livesDisp.textContent = 'ZEN';
     } else {
       if (livesHudLabel) livesHudLabel.textContent = 'LIVES';
       if (lives !== prevLives) {
-        if (lives <= 5) {
-          const hearts =
-            '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
-          if (livesDisp) livesDisp.innerHTML = hearts;
-        } else {
-          if (livesDisp) livesDisp.innerHTML = `❤️❤️❤️ +${lives - 3}`;
-        }
+        if (livesDisp) livesDisp.innerHTML = formatLivesMarkup(lives);
         prevLives = lives;
       }
     }
 
-    // Hunger bar
     if (hungerHudLabel) {
       hungerHudLabel.textContent = selectedMode === 'zen' ? 'FULLNESS' : 'HUNGER';
     }
     if (hungerBar) {
       hungerBar.style.width = `${Math.max(0, Math.min(100, hunger))}%`;
       hungerBar.style.background =
-        hunger > 60 ? '#8bc34a' : hunger > 30 ? '#ff9800' : '#f44336';
+        hunger > 60
+          ? 'linear-gradient(180deg, #9ccc65 0%, #558b2f 100%)'
+          : hunger > 30
+          ? 'linear-gradient(180deg, #ffb74d 0%, #ef6c00 100%)'
+          : 'linear-gradient(180deg, #ef5350 0%, #c62828 100%)';
     }
 
     if (hungerVignette) {
@@ -486,7 +556,6 @@ export function initCitrusKittenApp() {
       }
     }
 
-    // Fever bar
     if (feverBar) {
       if (feverActive) {
         const rem = Math.max(0, feverEndTime - Date.now());
@@ -501,11 +570,11 @@ export function initCitrusKittenApp() {
     const pct = Math.min(100, Math.max(0, hunger));
     if (purrBar) purrBar.style.width = `${pct}%`;
     const states = [
-      [80, feverActive ? '🌈 PURR FEVER (2x)!!!' : '😻 Loud purring!!!'],
-      [60, '😸 Full purr!'],
-      [40, '😊 Purring...'],
-      [20, '😐 Faint rumble...'],
-      [0, '😿 Not purring...'],
+      [80, feverActive ? 'PURR FEVER (2x SCORE)!' : 'Loud purring!'],
+      [60, 'Full happy purr!'],
+      [40, 'Gentle purring...'],
+      [20, 'Faint rumble...'],
+      [0, 'Waiting for citrus...'],
     ];
     for (const [t, l] of states) {
       if (pct >= t) {
@@ -543,7 +612,7 @@ export function initCitrusKittenApp() {
     el.style.top = `${localY + hudOffsetTop}px`;
     document.body.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
-    setTimeout(() => el.remove(), 1800);
+    setTimeout(() => el.remove(), 1600);
   }
 
   function spawnComboFlash() {
@@ -551,36 +620,40 @@ export function initCitrusKittenApp() {
     const el = document.createElement('div');
     el.className = 'combo-flash';
     const mult = Math.min(combo, 8);
-    el.textContent = `x${mult} COMBO! 🔥${combo > 8 ? ` (${combo} streak)` : ''}`;
+    el.textContent = `x${mult} COMBO!${combo > 8 ? ` (${combo} STREAK)` : ''}`;
     document.body.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
-    setTimeout(() => el.remove(), 1800);
+    setTimeout(() => el.remove(), 1600);
   }
 
   function spawnCatchParticles(localX, localY, fruitType = 'normal') {
     const screenX = localX;
     const screenY = localY + hudOffsetTop;
     const def = FRUIT_TYPES[fruitType] || FRUIT_TYPES.normal;
-    fx.spawnJuiceBurst(screenX, screenY, def.juiceColor, fruitType === 'giant' ? 16 : 11);
+    const spawnHalves = fruitType !== 'powerup';
+    fx.spawnJuiceBurst(
+      screenX,
+      screenY,
+      def.juiceColor,
+      fruitType === 'giant' ? 18 : 13,
+      spawnHalves
+    );
 
-    const emojis =
-      fruitType === 'golden'
-        ? ['✨', '💛', '🌟', '🍊']
-        : ['🍊', '💦', '✨', '🌿', '💛'];
-    const count = 5;
+    const colors = ['#ffd700', '#ff9800', '#fff9c4', '#76ff03'];
+    const count = 4;
     for (let i = 0; i < count; i++) {
       const el = document.createElement('div');
       el.className = 'catch-particle';
-      el.textContent = emojis[i % emojis.length];
+      el.style.background = colors[i % colors.length];
       const angle = (i / count) * Math.PI * 2;
-      const dist = 46 + Math.random() * 54;
+      const dist = 44 + Math.random() * 52;
       el.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
-      el.style.setProperty('--ty', `${Math.sin(angle) * dist - 28}px`);
+      el.style.setProperty('--ty', `${Math.sin(angle) * dist - 26}px`);
       el.style.left = `${screenX}px`;
       el.style.top = `${screenY}px`;
       document.body.appendChild(el);
       el.addEventListener('animationend', () => el.remove());
-      setTimeout(() => el.remove(), 1600);
+      setTimeout(() => el.remove(), 1400);
     }
   }
 
@@ -589,14 +662,13 @@ export function initCitrusKittenApp() {
     const def = POWERUPS[type];
     if (!def) return;
     checkAchievement('powerup_used');
-    showToast(`${def.icon} ${def.label} activated!`);
+    showToast(`${def.label.toUpperCase()} ACTIVATED!`);
 
     if (type === 'shield') {
       shieldActive = true;
       activePowerups.shield = { active: true };
     } else if (type === 'frenzy') {
       activePowerups.frenzy = { endTime: Date.now() + def.dur };
-      // Spawn an immediate burst of 3 oranges!
       for (let i = 0; i < 3; i++) {
         setTimeout(() => {
           if (gs === 'playing' && !paused) spawnOrange('golden');
@@ -617,7 +689,7 @@ export function initCitrusKittenApp() {
     document.body.classList.add('fever-mode');
     checkAchievement('fever_trigger');
     sound.playGoldenChime();
-    showToast('🌈 PURR FEVER! 2x Points & Golden Citrus!', 2400);
+    showToast('PURR FEVER! 2x POINTS & GOLDEN SHOWER!', 2400);
   }
 
   function updatePowerupHud() {
@@ -641,11 +713,11 @@ export function initCitrusKittenApp() {
       const def = POWERUPS[k];
       if (!def) continue;
       if (k === 'shield') {
-        html += `<div class="powerup-active">${def.icon} Shield Ready</div>`;
+        html += `<div class="powerup-active">SHIELD READY</div>`;
       } else {
         const remaining = Math.max(0, v.endTime - now);
         const pct = (remaining / def.dur) * 100;
-        html += `<div class="powerup-active">${def.icon} ${def.label}
+        html += `<div class="powerup-active">${def.label}
           <div class="powerup-bar-wrap"><div class="powerup-bar" style="width:${pct}%"></div></div>
         </div>`;
       }
@@ -663,7 +735,7 @@ export function initCitrusKittenApp() {
     return Boolean(activePowerups.frenzy && activePowerups.frenzy.endTime > Date.now());
   }
 
-  // ── Fruit Spawning ──
+  // ── Fruit Spawning (Bespoke Illustrated Vector Sprites) ──
   function spawnOrange(forcedType = null) {
     if (gs !== 'playing' || paused || levelFrozen || !gameArea) return;
     const cfg = getLevelCfg(levelIdx, selectedMode);
@@ -678,25 +750,21 @@ export function initCitrusKittenApp() {
     el.setAttribute('aria-hidden', 'true');
 
     const baseSpeed = cfg.speed + (Math.random() - 0.5) * 30;
-    let emoji = def.emoji;
-    let badge = def.badge || '';
     let powerupType = null;
 
     if (fruitType === 'powerup') {
       const ptypes = ['slowTime', 'magnet', 'shield', 'frenzy'];
       powerupType = ptypes[Math.floor(Math.random() * ptypes.length)];
-      emoji = POWERUPS[powerupType].icon;
     }
 
-    el.innerHTML = `<span>${emoji}</span>${
-      badge ? `<span class="fruit-badge">${badge}</span>` : ''
-    }`;
+    el.innerHTML = getFruitSpriteSVG(fruitType, powerupType);
 
     const areaWidth = gameArea.clientWidth || window.innerWidth;
     const padding = 48;
     const x = padding + Math.random() * Math.max(40, areaWidth - padding * 2);
     const drift = (Math.random() - 0.5) * 1.2;
     const accel = fruitType === 'giant' ? 0 : Math.random() * 0.08;
+    const rotSpeed = (Math.random() - 0.5) * 2.2;
 
     const obj = {
       id: oid++,
@@ -704,6 +772,8 @@ export function initCitrusKittenApp() {
       x,
       y: -45,
       baseX: x,
+      rot: 0,
+      rotSpeed,
       speed: baseSpeed * def.speedMult,
       fruitType,
       points: def.points,
@@ -750,7 +820,7 @@ export function initCitrusKittenApp() {
 
     obj.el.classList.add('caught');
     obj.el.addEventListener('animationend', () => obj.el.remove());
-    setTimeout(() => obj.el.remove(), 500);
+    setTimeout(() => obj.el.remove(), 450);
 
     // 1. Sour Lemon Hazard
     if (obj.fruitType === 'lemon') {
@@ -762,21 +832,21 @@ export function initCitrusKittenApp() {
         updatePowerupHud();
         checkAchievement('shield_used');
         sound.playShieldBlock();
-        showToast('🛡️ Shield blocked the sour lemon!');
+        showToast('SHIELD BLOCKED SOUR LEMON!');
         flash('rgba(0, 229, 255, 0.35)');
         return;
       }
 
       if (selectedMode === 'blitz') {
         blitzTimeLeft = Math.max(0, blitzTimeLeft - 5);
-        spawnScorePop(obj.x, obj.y, '-5s 🍋');
+        spawnScorePop(obj.x, obj.y, '-5s SOUR!');
       } else if (selectedMode === 'classic') {
         lives = Math.max(0, lives - 1);
       }
 
       flash('rgba(255, 235, 59, 0.45)');
       flashFace('scared', 620);
-      showBubble('😖 THAT WAS A SOUR LEMON!!');
+      showBubble('SOUR LEMON!! BLEGH!');
       kittenWrap?.classList.remove('alarmed');
       void kittenWrap?.offsetWidth;
       kittenWrap?.classList.add('alarmed');
@@ -790,16 +860,16 @@ export function initCitrusKittenApp() {
       return;
     }
 
-    // 2. Power-up Bubble
+    // 2. Power-up Orb
     if (obj.fruitType === 'powerup') {
       activatePowerup(obj.powerupType);
-      spawnScorePop(obj.x, obj.y, `${POWERUPS[obj.powerupType].icon} ${POWERUPS[obj.powerupType].label}!`);
+      spawnScorePop(obj.x, obj.y, `${POWERUPS[obj.powerupType].label.toUpperCase()}!`);
       spawnCatchParticles(obj.x, obj.y, 'powerup');
       sound.playPowerupSound();
       return;
     }
 
-    // 3. Edible Citrus Fruit!
+    // 3. Edible Citrus Fruit
     combo += obj.comboBoost || 1;
     caught++;
     if (source === 'mouth') {
@@ -814,7 +884,6 @@ export function initCitrusKittenApp() {
     const pts = Math.round(obj.points * comboMult * feverMult * mouthBonus);
     score += pts;
 
-    // Properly scaled hunger refill (Fixes Bug #3!)
     const cfg = getLevelCfg(levelIdx, selectedMode);
     const totalHunger = cfg.hungerRefill * (obj.hungerMult || 1);
     hunger = Math.min(100, hunger + totalHunger);
@@ -823,7 +892,6 @@ export function initCitrusKittenApp() {
       blitzTimeLeft += 2;
     }
 
-    // Charge Fever Bar
     if (!feverActive) {
       feverCharge = Math.min(100, feverCharge + (obj.fruitType === 'golden' ? 22 : 9));
       if (feverCharge >= 100) {
@@ -831,7 +899,6 @@ export function initCitrusKittenApp() {
       }
     }
 
-    // Kitten Chomp Animation
     if (kittenWrap) {
       kittenWrap.classList.remove('chomping');
       void kittenWrap.offsetWidth;
@@ -846,12 +913,12 @@ export function initCitrusKittenApp() {
     flashFace('happy', 520);
     showBubble(
       source === 'mouth'
-        ? '😻 Direct Mouth Catch! +20%'
+        ? 'Direct Mouth Catch! +20%'
         : CATCH_MESSAGES[caught % CATCH_MESSAGES.length]
     );
     const popLabel =
       combo >= 2
-        ? `+${pts} x${comboMult}${feverMult > 1 ? '🔥' : ''}!`
+        ? `+${pts} (x${comboMult}${feverMult > 1 ? ' FEVER' : ''})`
         : `+${pts}`;
     spawnScorePop(obj.x, obj.y, popLabel);
     spawnCatchParticles(obj.x, obj.y, obj.fruitType);
@@ -870,7 +937,6 @@ export function initCitrusKittenApp() {
       sound.playBiteVoice(speechBiteCount);
     }
 
-    // Check Achievements (including cumulative lifetime catches — Fixes Bug #7!)
     const totalLifetime = lifetimeCaughtBase + caught;
     if (caught === 1) checkAchievement('first_catch');
     if (combo >= 5) checkAchievement('combo_x5');
@@ -881,7 +947,6 @@ export function initCitrusKittenApp() {
     if (score >= 500) checkAchievement('score_500');
     if (score >= 2500) checkAchievement('score_2500');
 
-    // Level-Up Check (every 10 catches)
     const newLvl = Math.floor(caught / 10);
     if (newLvl > levelIdx) {
       if (missesThisLevel === 0 && levelIdx > 0) checkAchievement('perfect_level');
@@ -892,7 +957,7 @@ export function initCitrusKittenApp() {
       if (levelIdx >= 9) checkAchievement('level_10');
       if (selectedMode === 'classic' && levelIdx > 0 && levelIdx % 10 === 0) {
         lives++;
-        showToast('❤️ Bonus life! Keep going!');
+        showToast('BONUS LIFE EARNED!');
       }
       triggerLevelUp();
     }
@@ -905,22 +970,18 @@ export function initCitrusKittenApp() {
     if (gs !== 'playing') return;
     obj.el.classList.add('missed');
     obj.el.addEventListener('animationend', () => obj.el.remove());
-    setTimeout(() => obj.el.remove(), 500);
+    setTimeout(() => obj.el.remove(), 450);
 
-    // Letting hazards or power-ups fall off-screen is never penalized
     if (obj.fruitType === 'lemon' || obj.fruitType === 'powerup') return;
-
-    // Zen mode has no miss penalties
     if (selectedMode === 'zen') return;
 
-    // Shield blocks the miss BEFORE incrementing penalty counters
     if (shieldActive) {
       shieldActive = false;
       delete activePowerups.shield;
       updatePowerupHud();
       checkAchievement('shield_used');
       sound.playShieldBlock();
-      showToast('🛡️ Shield absorbed the miss!');
+      showToast('SHIELD ABSORBED MISS!');
       flash('rgba(0, 229, 255, 0.35)');
       return;
     }
@@ -952,7 +1013,6 @@ export function initCitrusKittenApp() {
     if (selectedMode === 'classic' && lives <= 0) endGame('no_lives');
   }
 
-  // ── Level-Up Fanfare (Fixes Bug #4: clears spawnTimer & levelUpTimer cleanly) ──
   function triggerLevelUp() {
     levelFrozen = true;
     clearTimeout(spawnTimer);
@@ -962,7 +1022,7 @@ export function initCitrusKittenApp() {
 
     const ov = document.getElementById('levelUpOverlay');
     const badge = document.getElementById('levelUpBadge');
-    if (badge) badge.textContent = `⬆️ LEVEL ${levelIdx + 1}!`;
+    if (badge) badge.textContent = `LEVEL ${levelIdx + 1}!`;
     ov?.classList.add('show');
 
     const freezeStart = Date.now();
@@ -980,7 +1040,7 @@ export function initCitrusKittenApp() {
       if (gs === 'playing' && !paused) {
         scheduleSpawn();
         const hints = ['Faster citrus!', 'More fruit!', 'Hungrier kitten!', 'Watch for lemons!'];
-        showToast(`⬆️ Level ${levelIdx + 1} — ${hints[levelIdx % hints.length]}`, 1900);
+        showToast(`LEVEL ${levelIdx + 1} — ${hints[levelIdx % hints.length]}`, 1800);
       }
     }, 480);
   }
@@ -996,7 +1056,6 @@ export function initCitrusKittenApp() {
     const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0;
     lastTs = ts;
 
-    // 1. Update Kitten Keyboard Movement
     if (keysHeld.left || keysHeld.right) {
       const moveSpeed = keysHeld.shift ? 0.95 : 0.58;
       if (keysHeld.left) kittenRatioX -= moveSpeed * dt;
@@ -1004,7 +1063,6 @@ export function initCitrusKittenApp() {
       updateKittenDOMPos();
     }
 
-    // 2. Fever Mode Expiration Check
     if (feverActive && Date.now() >= feverEndTime) {
       feverActive = false;
       feverCharge = 0;
@@ -1012,7 +1070,6 @@ export function initCitrusKittenApp() {
       document.body.classList.remove('fever-mode');
     }
 
-    // 3. Mode Timers & Hunger Drain
     const cfg = getLevelCfg(levelIdx, selectedMode);
     if (selectedMode === 'classic') {
       const drainMult = feverActive ? 0.5 : 1.0;
@@ -1034,8 +1091,7 @@ export function initCitrusKittenApp() {
       updatePowerupHud();
     }
 
-    // 4. Update Falling Fruits (Two-pass collection to avoid mutation during loop)
-    const toCatch = []; // [{ obj, source }]
+    const toCatch = [];
     const toMiss = [];
     const magnetActive = isMagnet();
     const areaWidth = gameArea?.clientWidth || window.innerWidth;
@@ -1047,13 +1103,13 @@ export function initCitrusKittenApp() {
       const speedMult = isSlowTime() ? 0.5 : 1;
       o.speed += o.accel * dt * 30;
       o.y += o.speed * speedMult * dt;
+      o.rot = (o.rot || 0) + (o.rotSpeed || 0) * dt * 50;
 
-      // True Magnetic Attraction toward Kitten Mouth (Fixes Bug #5!)
       if (magnetActive && o.fruitType !== 'lemon' && o.y > areaHeight * 0.18) {
         const dx = kitCX - o.x;
         const dy = kitCY - o.y;
         const dist = Math.hypot(dx, dy) || 1;
-        const pullSpeed = 480 * dt;
+        const pullSpeed = 490 * dt;
         o.x += (dx / dist) * pullSpeed;
         o.y += (dy / dist) * pullSpeed * 0.65;
         o.baseX = o.x;
@@ -1062,7 +1118,6 @@ export function initCitrusKittenApp() {
           continue;
         }
       } else if (o.drift) {
-        // Horizontal sine drift clamped inside screen bounds (Fixes Bug #6!)
         o.driftPhase = (o.driftPhase || 0) + dt * 1.8;
         const rawX = o.baseX + Math.sin(o.driftPhase) * 38 * o.drift;
         o.x = Math.max(padding, Math.min(areaWidth - padding, rawX));
@@ -1070,8 +1125,8 @@ export function initCitrusKittenApp() {
 
       o.el.style.left = `${o.x}px`;
       o.el.style.top = `${o.y}px`;
+      o.el.style.transform = `rotate(${o.rot.toFixed(1)}deg)`;
 
-      // Direct Kitten Mouth / Paw Catch Detection
       if (o.fruitType !== 'lemon') {
         const mouthDist = Math.hypot(o.x - kitCX, o.y - kitCY);
         if (mouthDist < o.radius + 44) {
@@ -1097,7 +1152,6 @@ export function initCitrusKittenApp() {
       if (gs !== 'playing') break;
     }
 
-    // 5. Render Canvas FX (Slice Trail & Juice Droplets)
     fx.updateAndDraw(dt, performance.now(), feverActive);
 
     updateEyeTracking();
@@ -1133,7 +1187,6 @@ export function initCitrusKittenApp() {
     fx.addTrailPoint(curPt.x, curPt.y);
 
     if (lastSwipePt) {
-      // Convert viewport coordinates to gameArea local coordinates
       const x1 = lastSwipePt.x;
       const y1 = lastSwipePt.y - hudOffsetTop;
       const x2 = curPt.x;
@@ -1141,7 +1194,7 @@ export function initCitrusKittenApp() {
 
       const sliced = [];
       for (const o of oranges) {
-        if (segmentIntersectsCircle(x1, y1, x2, y2, o.x, o.y, o.radius + 14)) {
+        if (segmentIntersectsCircle(x1, y1, x2, y2, o.x, o.y, o.radius + 15)) {
           sliced.push(o);
         }
       }
@@ -1152,7 +1205,7 @@ export function initCitrusKittenApp() {
           if (swipeCatchCount === 3) {
             score += 25;
             checkAchievement('slice_multi');
-            spawnScorePop(o.x, o.y - 20, '⚔️ NINJA SLICE +25!');
+            spawnScorePop(o.x, o.y - 20, 'NINJA SLICE +25!');
           }
         }
       }
@@ -1177,7 +1230,7 @@ export function initCitrusKittenApp() {
     clearTimeout(levelUpTimer);
     sound.pauseSession();
     if (pauseOverlay) pauseOverlay.style.display = 'flex';
-    if (pauseBtn) pauseBtn.textContent = '▶️';
+    if (pauseBtn) pauseBtn.innerHTML = UI_ICONS.play;
   }
 
   function resumeGame() {
@@ -1191,7 +1244,7 @@ export function initCitrusKittenApp() {
     }
     if (feverActive) feverEndTime += pausedElapsed;
     if (pauseOverlay) pauseOverlay.style.display = 'none';
-    if (pauseBtn) pauseBtn.textContent = '⏸️';
+    if (pauseBtn) pauseBtn.innerHTML = UI_ICONS.pause;
     sound.resumeSession();
     lastTs = null;
     scheduleSpawn();
@@ -1204,7 +1257,16 @@ export function initCitrusKittenApp() {
   }
 
   pauseBtn?.addEventListener('click', togglePause);
-  pauseOverlay?.addEventListener('click', resumeGame);
+  document.getElementById('resumeOverlayBtn')?.addEventListener('click', resumeGame);
+  document.getElementById('pauseMenuBtn')?.addEventListener('click', () => {
+    endGame('quit');
+    gs = 'start';
+    const goScreen = document.getElementById('gameOverScreen');
+    const startScr = document.getElementById('startScreen');
+    if (goScreen) goScreen.style.display = 'none';
+    if (startScr) startScr.style.display = 'flex';
+    initStartScreen();
+  });
 
   // ── Start & End Game Lifecycle ──
   let gameEndScore = 0;
@@ -1212,6 +1274,7 @@ export function initCitrusKittenApp() {
   let gameEndAccuracy = 0;
 
   function startGame() {
+    closeDrawerModal();
     gs = 'playing';
     score = 0;
     lives = 3;
@@ -1232,7 +1295,7 @@ export function initCitrusKittenApp() {
     lastTs = null;
     levelFrozen = false;
     paused = false;
-    prevLives = -1; // Ensures HUD hearts always re-render on new game!
+    prevLives = -1;
     displayedScore = 0;
     if (scoreDisp) scoreDisp.textContent = '0';
     activePowerups = {};
@@ -1252,7 +1315,7 @@ export function initCitrusKittenApp() {
     if (lvlOv) lvlOv.classList.remove('show');
     if (pauseBtn) {
       pauseBtn.style.display = '';
-      pauseBtn.textContent = '⏸️';
+      pauseBtn.innerHTML = UI_ICONS.pause;
     }
     gameArea?.querySelectorAll('.orange-fruit').forEach((el) => el.remove());
     if (powerupHud) powerupHud.innerHTML = '';
@@ -1300,6 +1363,8 @@ export function initCitrusKittenApp() {
     activePowerups = {};
     updatePowerupHud();
 
+    if (reason === 'quit') return;
+
     const accuracy = caught + missed > 0 ? Math.round((caught / (caught + missed)) * 100) : 0;
     gameEndScore = score;
     gameEndLevel = levelIdx + 1;
@@ -1328,13 +1393,13 @@ export function initCitrusKittenApp() {
 
     let title =
       reason === 'starved'
-        ? '😿 The kitten starved!'
+        ? 'The Kitten Starved!'
         : reason === 'time_up'
-        ? '⏱️ Time is up!'
-        : '💔 No lives left!';
+        ? 'Time Is Up!'
+        : 'Out of Lives!';
     if (score > 0 && score > prevBest) {
-      title = '🏆 NEW HIGH SCORE!';
-      showToast(`🎉 New record: ${score} points!`);
+      title = 'NEW HIGH SCORE!';
+      showToast(`NEW RECORD: ${score} POINTS!`);
     }
 
     const goTitle = document.getElementById('gameOverTitle');
@@ -1343,14 +1408,14 @@ export function initCitrusKittenApp() {
     const goStats = document.getElementById('gameOverStats');
     if (goStats) {
       goStats.innerHTML = `
-        <span>Mode</span><b>${GAME_MODES[selectedMode].icon} ${GAME_MODES[selectedMode].name}</b>
-        <span>Score</span><b>${score}</b>
-        <span>Best</span><b>${best}</b>
-        <span>Level reached</span><b>${levelIdx + 1}</b>
-        <span>Citrus caught</span><b>${caught}</b>
-        <span>Citrus missed</span><b>${missed}</b>
+        <span>Mode</span><b>${GAME_MODES[selectedMode].name}</b>
+        <span>Final Score</span><b>${score}</b>
+        <span>High Score</span><b>${best}</b>
+        <span>Level Reached</span><b>${levelIdx + 1}</b>
+        <span>Citrus Caught</span><b>${caught}</b>
+        <span>Citrus Missed</span><b>${missed}</b>
         <span>Accuracy</span><b>${accuracy}%</b>
-        <span>Best combo</span><b>x${Math.min(8, maxComboThisGame)} (${maxComboThisGame})</b>
+        <span>Best Combo</span><b>x${Math.min(8, maxComboThisGame)} (${maxComboThisGame})</b>
       `;
     }
 
@@ -1363,9 +1428,9 @@ export function initCitrusKittenApp() {
           .map((id) => ACHIEVEMENT_DEFS.find((d) => d.id === id))
           .filter(Boolean);
         achEl.innerHTML =
-          '<div style="font-size:0.9rem;color:#b85c00;margin-top:4px;">Unlocked this game: ' +
-          defs.map((d) => `${d.icon} ${d.label}`).join(' · ') +
-          '</div>';
+          '<div class="session-stats">Unlocked this round: <b>' +
+          defs.map((d) => d.label).join(' · ') +
+          '</b></div>';
       } else {
         achEl.innerHTML = '';
       }
@@ -1386,16 +1451,16 @@ export function initCitrusKittenApp() {
   // ── Share Button ──
   document.getElementById('shareBtn')?.addEventListener('click', () => {
     const modeName = GAME_MODES[selectedMode]?.name || 'Classic';
-    const text = `🍊 Citrus Kitten (${modeName}): I scored ${gameEndScore} points (Level ${gameEndLevel}, ${gameEndAccuracy}% accuracy)! Can you beat me?`;
+    const text = `Citrus Kitten (${modeName}): I scored ${gameEndScore} points (Level ${gameEndLevel}, ${gameEndAccuracy}% accuracy)! Can you beat me?`;
     if (navigator.share) {
       navigator.share({ title: 'Citrus Kitten', text }).catch(() => {});
     } else if (navigator.clipboard?.writeText) {
       navigator.clipboard
         .writeText(text)
-        .then(() => showToast('📋 Score copied to clipboard!'))
-        .catch(() => showToast('📋 ' + text));
+        .then(() => showToast('SCORE COPIED TO CLIPBOARD!'))
+        .catch(() => showToast(text));
     } else {
-      showToast('📋 ' + text);
+      showToast(text);
     }
   });
 
@@ -1407,8 +1472,10 @@ export function initCitrusKittenApp() {
 
     if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
       if (gs === 'playing') togglePause();
+      else if (modalBackdrop && modalBackdrop.style.display === 'flex') closeDrawerModal();
     }
     if (e.key === ' ' || e.key === 'Enter') {
+      if (modalBackdrop && modalBackdrop.style.display === 'flex') return;
       if (gs === 'start') {
         e.preventDefault();
         startGame();

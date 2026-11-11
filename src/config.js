@@ -27,9 +27,9 @@ export const GAME_MODES = {
   classic: {
     id: 'classic',
     name: 'Classic Arcade',
-    icon: '🎮',
+    iconKey: 'modeClassic',
     badge: 'CLASSIC',
-    desc: 'Keep hunger full & protect your 3 lives! Bonus life every 10 levels.',
+    desc: 'Keep hunger full & protect 3 lives! +1 life every 10 levels.',
     hasLives: true,
     hasHungerDrain: true,
     timeLimitSec: null,
@@ -37,9 +37,9 @@ export const GAME_MODES = {
   blitz: {
     id: 'blitz',
     name: '90s Citrus Blitz',
-    icon: '⏱️',
+    iconKey: 'modeBlitz',
     badge: 'BLITZ',
-    desc: '90-second score rush! Golden oranges add +2s, sour lemons cost -5s.',
+    desc: '90s score rush! Golden adds +2s, sour lemons cost -5s.',
     hasLives: false,
     hasHungerDrain: false,
     timeLimitSec: 90,
@@ -47,9 +47,9 @@ export const GAME_MODES = {
   zen: {
     id: 'zen',
     name: 'Zen Purr Garden',
-    icon: '🌸',
+    iconKey: 'modeZen',
     badge: 'ZEN',
-    desc: 'Relaxing endless mode! No lives lost, no starvation, no hazards.',
+    desc: 'Endless orchard mode! No lives lost, no starvation, no hazards.',
     hasLives: false,
     hasHungerDrain: false,
     timeLimitSec: null,
@@ -62,7 +62,6 @@ export const GAME_MODES = {
 export const POWERUPS = {
   slowTime: {
     id: 'slowTime',
-    icon: '⏳',
     label: 'Slow Time',
     dur: 4500,
     color: '#29b6f6',
@@ -70,7 +69,6 @@ export const POWERUPS = {
   },
   magnet: {
     id: 'magnet',
-    icon: '🧲',
     label: 'Citrus Magnet',
     dur: 3800,
     color: '#ab47bc',
@@ -78,7 +76,6 @@ export const POWERUPS = {
   },
   shield: {
     id: 'shield',
-    icon: '🛡️',
     label: 'Bubble Shield',
     dur: null, // Consumed on next miss or hazard
     color: '#00bfa5',
@@ -86,7 +83,6 @@ export const POWERUPS = {
   },
   frenzy: {
     id: 'frenzy',
-    icon: '🌈',
     label: '2x Citrus Rush',
     dur: 5000,
     color: '#ff6f00',
@@ -100,18 +96,15 @@ export const POWERUPS = {
 export const FRUIT_TYPES = {
   normal: {
     id: 'normal',
-    emoji: '🍊',
     label: 'Valencia Orange',
     points: 10,
-    hungerMult: 1.0, // Multiplies level's scaled hungerRefill
+    hungerMult: 1.0,
     speedMult: 1.0,
     radius: 30,
     juiceColor: '#ff9800',
   },
   golden: {
     id: 'golden',
-    emoji: '🍊',
-    badge: '✨',
     label: 'Golden Mandarin',
     points: 30,
     hungerMult: 1.15,
@@ -121,8 +114,6 @@ export const FRUIT_TYPES = {
   },
   giant: {
     id: 'giant',
-    emoji: '🍊',
-    badge: '👑',
     label: 'Giant Pomelo',
     points: 20,
     hungerMult: 1.65,
@@ -132,8 +123,6 @@ export const FRUIT_TYPES = {
   },
   tangerine: {
     id: 'tangerine',
-    emoji: '🍑',
-    badge: '⚡',
     label: 'Zesty Tangerine',
     points: 15,
     hungerMult: 0.9,
@@ -144,8 +133,6 @@ export const FRUIT_TYPES = {
   },
   lemon: {
     id: 'lemon',
-    emoji: '🍋',
-    badge: '☠️',
     label: 'Sour Lemon',
     points: 0,
     hungerMult: 0,
@@ -156,8 +143,7 @@ export const FRUIT_TYPES = {
   },
   powerup: {
     id: 'powerup',
-    emoji: '🎁',
-    label: 'Power-Up Bubble',
+    label: 'Power-Up Orb',
     points: 5,
     hungerMult: 0.25,
     speedMult: 0.65,
@@ -173,7 +159,6 @@ export function pickFruitType(levelIdx = 0, mode = 'classic', feverActive = fals
   const r = rng();
 
   if (feverActive) {
-    // During Purr Fever, no hazards spawn and golden/tangerine rates soar!
     if (r < 0.06) return 'powerup';
     if (r < 0.32) return 'golden';
     if (r < 0.48) return 'tangerine';
@@ -181,7 +166,7 @@ export function pickFruitType(levelIdx = 0, mode = 'classic', feverActive = fals
     return 'normal';
   }
 
-  const lemonRate = mode === 'zen' ? 0 : 0.06 + Math.min(levelIdx * 0.01, 0.10); // 6% -> 16% by Lv10
+  const lemonRate = mode === 'zen' ? 0 : 0.06 + Math.min(levelIdx * 0.01, 0.10);
   const powerupRate = mode === 'zen' ? 0.03 : 0.045;
   const goldenRate = 0.075;
   const giantRate = 0.055;
@@ -201,25 +186,25 @@ export function pickFruitType(levelIdx = 0, mode = 'classic', feverActive = fals
 }
 
 /**
- * Achievement Definitions (16 total — preserves all 12 original IDs + 4 new ones)
+ * Achievement Definitions (16 total)
  */
 export const ACHIEVEMENT_DEFS = [
-  { id: 'first_catch',   label: 'First Bite',      icon: '🍊', desc: 'Catch your first orange' },
-  { id: 'combo_x5',      label: 'Combo King',      icon: '🔥', desc: 'Reach a x5 combo multiplier' },
-  { id: 'combo_x8',      label: 'Combo Legend',    icon: '💥', desc: 'Reach the max x8 combo multiplier' },
-  { id: 'level_5',       label: 'Getting Good',    icon: '⬆️', desc: 'Reach Level 5' },
-  { id: 'level_10',      label: 'Citrus Master',   icon: '🏆', desc: 'Reach Level 10' },
-  { id: 'catches_50',    label: 'Hungry Kitten',   icon: '😸', desc: 'Catch 50 oranges total' },
-  { id: 'catches_100',   label: 'Orange Obsessed', icon: '🧡', desc: 'Catch 100 oranges total' },
-  { id: 'perfect_level', label: 'Perfect Round',   icon: '✨', desc: 'Complete a level with 0 misses' },
-  { id: 'golden_catch',  label: 'Golden Touch',    icon: '💛', desc: 'Catch a Golden Mandarin' },
-  { id: 'powerup_used',  label: 'Power Up!',       icon: '⚡', desc: 'Collect your first power-up' },
-  { id: 'shield_used',   label: 'Untouchable',     icon: '🛡️', desc: 'Block a miss or lemon with a Shield' },
-  { id: 'score_500',     label: 'High Scorer',     icon: '🎯', desc: 'Score 500+ points in one game' },
-  { id: 'score_2500',    label: 'Citrus Tycoon',   icon: '👑', desc: 'Score 2,500+ points in one game' },
-  { id: 'fever_trigger', label: 'Purr Overdrive',  icon: '🌈', desc: 'Activate Purr Fever mode' },
-  { id: 'slice_multi',   label: 'Ninja Paws',      icon: '⚔️', desc: 'Slice 3+ fruits in a single swipe' },
-  { id: 'mouth_catch',   label: 'Direct Delivery', icon: '😻', desc: 'Catch 10 fruits directly with the kitten' },
+  { id: 'first_catch',   label: 'First Bite',      desc: 'Catch your first orange' },
+  { id: 'combo_x5',      label: 'Combo King',      desc: 'Reach a x5 combo multiplier' },
+  { id: 'combo_x8',      label: 'Combo Legend',    desc: 'Reach the max x8 combo multiplier' },
+  { id: 'level_5',       label: 'Getting Good',    desc: 'Reach Level 5' },
+  { id: 'level_10',      label: 'Citrus Master',   desc: 'Reach Level 10' },
+  { id: 'catches_50',    label: 'Hungry Kitten',   desc: 'Catch 50 oranges total' },
+  { id: 'catches_100',   label: 'Orange Obsessed', desc: 'Catch 100 oranges total' },
+  { id: 'perfect_level', label: 'Perfect Round',   desc: 'Complete a level with 0 misses' },
+  { id: 'golden_catch',  label: 'Golden Touch',    desc: 'Catch a Golden Mandarin' },
+  { id: 'powerup_used',  label: 'Power Up!',       desc: 'Collect your first power-up' },
+  { id: 'shield_used',   label: 'Untouchable',     desc: 'Block a miss or lemon with a Shield' },
+  { id: 'score_500',     label: 'High Scorer',     desc: 'Score 500+ points in one game' },
+  { id: 'score_2500',    label: 'Citrus Tycoon',   desc: 'Score 2,500+ points in one game' },
+  { id: 'fever_trigger', label: 'Purr Overdrive',  desc: 'Activate Purr Fever mode' },
+  { id: 'slice_multi',   label: 'Ninja Paws',      desc: 'Slice 3+ fruits in a single swipe' },
+  { id: 'mouth_catch',   label: 'Direct Delivery', desc: 'Catch 10 fruits directly with the kitten' },
 ];
 
 /**
@@ -229,24 +214,22 @@ export const KITTEN_SKINS = [
   {
     id: 'clementine',
     name: 'Clementine Tabby',
-    icon: '🐱',
     unlockText: 'Starter Kitten',
     isUnlocked: () => true,
     colors: {
       fur: '#f4a94e',
-      stripes: '#e8923a',
+      stripes: '#d97724',
       belly: '#fde8c5',
-      earInner: '#f7c0c0',
-      nose: '#e05a8a',
-      eyes: '#3a2000',
+      earInner: '#f7b8c4',
+      nose: '#ff5c8d',
+      eyes: '#3a1b06',
     },
     accessory: 'none',
   },
   {
     id: 'tuxedo',
     name: 'Tuxedo Zest',
-    icon: '🐈‍⬛',
-    unlockText: 'Unlock: Catch 50 oranges total',
+    unlockText: 'Catch 50 oranges total',
     isUnlocked: (ach, stats) => ach.includes('catches_50') || (stats.totalCaught || 0) >= 50,
     colors: {
       fur: '#2d3142',
@@ -261,8 +244,7 @@ export const KITTEN_SKINS = [
   {
     id: 'calico',
     name: 'Yuzu Blossom',
-    icon: '🌸',
-    unlockText: 'Unlock: Reach a x8 Combo',
+    unlockText: 'Reach a x8 Combo',
     isUnlocked: (ach) => ach.includes('combo_x8'),
     colors: {
       fur: '#fff3e0',
@@ -277,8 +259,7 @@ export const KITTEN_SKINS = [
   {
     id: 'cyber',
     name: 'Cyber Citrus',
-    icon: '🤖',
-    unlockText: 'Unlock: Reach Level 5',
+    unlockText: 'Reach Level 5',
     isUnlocked: (ach) => ach.includes('level_5'),
     colors: {
       fur: '#ff9100',
@@ -293,8 +274,7 @@ export const KITTEN_SKINS = [
   {
     id: 'royal',
     name: 'Emperor Mandarin',
-    icon: '👑',
-    unlockText: 'Unlock: Reach Level 10 or Score 2,500+',
+    unlockText: 'Reach Level 10 or Score 2,500+',
     isUnlocked: (ach) => ach.includes('level_10') || ach.includes('score_2500'),
     colors: {
       fur: '#ffb300',
@@ -312,19 +292,19 @@ export const KITTEN_SKINS = [
  * Bubble Messages
  */
 export const CATCH_MESSAGES = [
-  '😋 Nom nom!', '🍊 So juicy!', '😸 Purrfect!', '🤤 Delicious!',
-  '😻 More!!', '🍋 Zesty!', '😺 Yummy!', '✨ *slurp*',
-  '🧬 Vitamin C: SECURED.', '📐 Perfect acidity.', '🍊 Citrus life!',
-  '💛 Sweet & sour!', '🎯 Right in the face.', '🧪 Synthesised into happiness.',
-  '🎓 Nutritionally optimal.', '🌡️ Core temp: rising.',
+  'Nom nom!', 'So juicy!', 'Purrfect!', 'Delicious!',
+  'More citrus!!', 'Zesty!', 'Yummy!', '*Slurp!*',
+  'Vitamin C: SECURED.', 'Perfect acidity!', 'Citrus life!',
+  'Sweet & tangy!', 'Right in the mouth!', 'Pure happiness!',
+  'Nutritionally optimal!', 'Purr engine: MAX!',
 ];
 
 export const MISS_MESSAGES_UNHINGED = [
-  '😡 YOU DROPPED IT', '💢 THAT WAS MINE', '😤 ARE YOU SERIOUS',
-  '🤬 PICK IT UP!!', '😠 INCOMPETENT', '💔 My orange...gone.',
+  'YOU DROPPED IT!', 'THAT WAS MINE!', 'ARE YOU SERIOUS?!',
+  'PICK IT UP!!', 'INCOMPETENT!', 'My orange... gone.',
 ];
 
 export const MISS_MESSAGES_WHOLESOME = [
-  '😿 Oh no, my orange!', '💔 It splatted!', '🥺 So hungry...',
-  '🙀 Too fast!', '🍊 Come baaack!', '😿 Missed one!',
+  'Oh no, my orange!', 'It splatted!', 'Tummy rumbling...',
+  'Too fast!', 'Come baaack!', 'Missed one!',
 ];

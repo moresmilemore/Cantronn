@@ -3,259 +3,441 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Citrus Kitten — Cantronn Arcade</title>
-  <meta name="description" content="Feed the kitten! Catch and slice falling oranges, dodge sour lemons, trigger Purr Fever, and rack up combos in this addictive arcade game."/>
-  <meta name="theme-color" content="#ffd06e"/>
-  <meta property="og:title" content="Citrus Kitten — Cantronn Arcade"/>
-  <meta property="og:description" content="Feed the kitten! Catch and slice falling oranges, dodge sour lemons, trigger Purr Fever, and rack up combos in this addictive arcade game."/>
+  <title>Citrus Kitten — Orchard Arcade</title>
+  <meta name="description" content="Feed the kitten! Catch and slice falling oranges, dodge sour lemons, trigger Purr Fever, and rack up combos in this handcrafted 2D arcade game."/>
+  <meta name="theme-color" content="#ff9800"/>
+  <meta property="og:title" content="Citrus Kitten — Orchard Arcade"/>
+  <meta property="og:description" content="Feed the kitten! Catch and slice falling oranges, dodge sour lemons, trigger Purr Fever, and rack up combos in this handcrafted 2D arcade game."/>
   <meta property="og:type" content="website"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <link rel="manifest" href="manifest.json"/>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='54' r='38' fill='%23ff9800' stroke='%233a1b06' stroke-width='7'/><path d='M52 16C62 6 78 8 80 18C70 24 58 22 52 16Z' fill='%2343a047' stroke='%233a1b06' stroke-width='5'/><ellipse cx='36' cy='38' rx='10' ry='5' transform='rotate(-30 36 38)' fill='white'/></svg>"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet"/>
   <style>
 /* __INJECT_CSS__ */
   </style>
 </head>
 <body>
 
-<!-- background decorations -->
-<div class="bg-fruit" style="top:8%;left:4%;animation-delay:0s">🍊</div>
-<div class="bg-fruit" style="top:14%;right:5%;animation-delay:1.5s">🍋</div>
-<div class="bg-fruit" style="top:54%;left:2%;animation-delay:3s">🍊</div>
-<div class="bg-fruit" style="top:68%;right:3%;animation-delay:2s">🌿</div>
-<div class="bg-fruit" style="bottom:12%;left:8%;animation-delay:4s">🍋</div>
-<div class="bg-fruit" style="bottom:16%;right:8%;animation-delay:1s">🍊</div>
+<!-- ═══════════════════════════════════════════════════════════════════════
+     ILLUSTRATED PARALLAX ORCHARD STAGE ENVIRONMENT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div id="stageEnvironment" aria-hidden="true">
+  <div class="sunburst-rays"></div>
 
-<!-- canvas layer for slice trails & juice bursts -->
+  <!-- Drifting Illustrated Clouds -->
+  <svg class="stage-cloud cloud-1" viewBox="0 0 220 90" fill="none">
+    <path d="M45 72H178C194 72 206 60 206 45C206 31 195 20 181 19C175 8 163 2 149 2C131 2 116 14 112 30C106 26 98 24 90 24C71 24 56 38 54 56C49 55 44 55 39 57C29 61 28 72 45 72Z" fill="#fffdf7" fill-opacity="0.88" stroke="#f3c68f" stroke-width="3"/>
+  </svg>
+  <svg class="stage-cloud cloud-2" viewBox="0 0 180 75" fill="none">
+    <path d="M32 60H148C161 60 170 50 170 38C170 26 160 17 148 17C142 8 131 3 119 3C102 3 89 15 86 30C78 26 68 27 61 33C50 28 36 34 33 46C24 48 22 60 32 60Z" fill="#fffdf7" fill-opacity="0.75" stroke="#f3c68f" stroke-width="2.5"/>
+  </svg>
+
+  <!-- Top Overhanging Citrus Tree Canopy -->
+  <svg class="canopy-branch canopy-left" viewBox="0 0 320 150" fill="none">
+    <path d="M-10 15Q90 35 190 12" stroke="#5d2e0c" stroke-width="14" stroke-linecap="round"/>
+    <ellipse cx="45" cy="48" rx="48" ry="26" transform="rotate(-12 45 48)" fill="#2e7d32" stroke="#3a1b06" stroke-width="4"/>
+    <ellipse cx="115" cy="42" rx="52" ry="26" transform="rotate(8 115 42)" fill="#43a047" stroke="#3a1b06" stroke-width="4"/>
+    <ellipse cx="185" cy="28" rx="44" ry="22" transform="rotate(-18 185 28)" fill="#66bb6a" stroke="#3a1b06" stroke-width="4"/>
+    <ellipse cx="75" cy="24" rx="46" ry="24" fill="#66bb6a" stroke="#3a1b06" stroke-width="4"/>
+    <circle cx="92" cy="56" r="14" fill="#ff9800" stroke="#3a1b06" stroke-width="3.5"/>
+    <circle cx="88" cy="52" r="4" fill="#fff" fill-opacity="0.75"/>
+  </svg>
+  <svg class="canopy-branch canopy-right" viewBox="0 0 320 150" fill="none">
+    <path d="M330 15Q230 35 130 12" stroke="#5d2e0c" stroke-width="14" stroke-linecap="round"/>
+    <ellipse cx="275" cy="48" rx="48" ry="26" transform="rotate(12 275 48)" fill="#2e7d32" stroke="#3a1b06" stroke-width="4"/>
+    <ellipse cx="205" cy="42" rx="52" ry="26" transform="rotate(-8 205 42)" fill="#43a047" stroke="#3a1b06" stroke-width="4"/>
+    <ellipse cx="135" cy="28" rx="44" ry="22" transform="rotate(18 135 28)" fill="#66bb6a" stroke="#3a1b06" stroke-width="4"/>
+    <ellipse cx="245" cy="24" rx="46" ry="24" fill="#66bb6a" stroke="#3a1b06" stroke-width="4"/>
+    <circle cx="228" cy="56" r="14" fill="#ff9800" stroke="#3a1b06" stroke-width="3.5"/>
+    <circle cx="224" cy="52" r="4" fill="#fff" fill-opacity="0.75"/>
+  </svg>
+
+  <!-- Distant Rolling Orchard Hills & Foreground Meadow Deck -->
+  <svg class="stage-hills" viewBox="0 0 1440 260" preserveAspectRatio="none" fill="none">
+    <path d="M0 150Q260 65 560 135T1120 115T1440 140V260H0V150Z" fill="#9ccc65" opacity="0.65"/>
+    <path d="M0 185Q360 110 740 175T1440 160V260H0V185Z" fill="#7cb342" stroke="#3a1b06" stroke-width="4"/>
+    <!-- Warm Wooden Engawa / Orchard Deck Floor -->
+    <rect x="0" y="216" width="1440" height="44" fill="#d78a44" stroke="#3a1b06" stroke-width="4"/>
+    <line x1="0" y1="226" x2="1440" y2="226" stroke="#f5b971" stroke-width="3" opacity="0.6"/>
+  </svg>
+</div>
+
+<!-- Canvas Layer for Katana Slice Trails, Sliced Fruit Halves & Juice FX -->
 <canvas id="fxCanvas"></canvas>
 
-<!-- flash overlay -->
+<!-- Screen Flash & Low Hunger Vignette -->
 <div id="flashOverlay"></div>
-
-<!-- low hunger vignette -->
 <div id="hungerVignette"></div>
 
-<!-- pause overlay -->
+<!-- Pause Overlay -->
 <div id="pauseOverlay" style="display:none">
-  <div>⏸ PAUSED</div>
-  <div class="pause-sub">Press P / Esc or click ▶️ to resume</div>
+  <div class="pause-card">
+    <div class="pause-badge">GAME PAUSED</div>
+    <p class="pause-sub">Take a breather! Your oranges aren't going anywhere.</p>
+    <div class="pause-actions">
+      <button class="btn" id="resumeOverlayBtn" type="button">RESUME GAME</button>
+      <button class="btn-secondary" id="pauseMenuBtn" type="button">QUIT TO TITLE</button>
+    </div>
+  </div>
 </div>
 
-<!-- level-up / fever overlay -->
+<!-- Level-Up / Fever Banner Overlay -->
 <div id="levelUpOverlay"><div id="levelUpBadge"></div></div>
 
-<!-- HUD -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TACTILE IN-GAME HUD PLAQUES
+     ═══════════════════════════════════════════════════════════════════════ -->
 <div id="hud">
-  <div class="hud-box">
-    <span>SCORE</span>
-    <span class="hud-val" id="scoreDisplay">0</span>
+  <!-- Left Plaque: Score, Level & Best -->
+  <div class="hud-plaque hud-left">
+    <div class="hud-box score-box">
+      <span class="hud-lbl">SCORE</span>
+      <span class="hud-val" id="scoreDisplay">0</span>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-box level-box">
+      <span class="hud-lbl">LEVEL</span>
+      <span class="hud-val" id="levelDisplay">1</span>
+    </div>
+    <div class="hud-divider hide-xs"></div>
+    <div class="hud-box best-box hide-xs">
+      <span class="hud-lbl">BEST</span>
+      <span class="hud-val" id="bestDisplay">0</span>
+    </div>
   </div>
-  <div class="hud-box" id="hungerHudBox">
-    <span id="hungerHudLabel">HUNGER</span>
-    <div class="hunger-wrap"><div id="hungerBar"></div></div>
+
+  <!-- Center Plaque: Hunger Capsule & Lives Hearts -->
+  <div class="hud-plaque hud-center">
+    <div class="hud-box hunger-box" id="hungerHudBox">
+      <div class="hunger-header">
+        <span class="hud-lbl" id="hungerHudLabel">HUNGER</span>
+      </div>
+      <div class="hunger-wrap">
+        <div id="hungerBar"></div>
+        <div class="hunger-shine"></div>
+      </div>
+    </div>
+    <div class="hud-divider"></div>
+    <div class="hud-box lives-box" id="livesHudBox">
+      <span class="hud-lbl" id="livesHudLabel">LIVES</span>
+      <div id="lives"></div>
+    </div>
   </div>
-  <div class="hud-box" id="livesHudBox">
-    <span id="livesHudLabel">LIVES</span>
-    <div id="lives">❤️❤️❤️</div>
-  </div>
-  <div class="hud-box">
-    <span>LEVEL</span>
-    <span class="hud-val" id="levelDisplay">1</span>
-  </div>
-  <div class="hud-box">
-    <span>BEST</span>
-    <span class="hud-val" id="bestDisplay">0</span>
-  </div>
+
+  <!-- Right Controls: Tactile 3D Roundel Buttons -->
   <div class="hud-controls">
-    <button class="hud-btn" id="musicToggle" title="Toggle Music" aria-label="Toggle music">🔊</button>
-    <button class="hud-btn" id="sfxToggle" title="Toggle SFX &amp; Purr" aria-label="Toggle SFX and purr">🔔</button>
-    <button class="hud-btn" id="voiceToggle" title="Voice Mode (Unhinged / Wholesome / Off)" aria-label="Toggle voice mode">🌶️</button>
-    <button class="hud-btn" id="pauseBtn" title="Pause (P or Esc)" aria-label="Pause game" style="display:none">⏸️</button>
+    <button class="hud-btn" id="musicToggle" title="Toggle Music" aria-label="Toggle music"></button>
+    <button class="hud-btn" id="sfxToggle" title="Toggle SFX &amp; Purr" aria-label="Toggle SFX and purr"></button>
+    <button class="hud-btn" id="voiceToggle" title="Voice Mode (Unhinged / Wholesome / Off)" aria-label="Toggle voice mode"></button>
+    <button class="hud-btn" id="pauseBtn" title="Pause (P or Esc)" aria-label="Pause game" style="display:none"></button>
   </div>
 </div>
 
+<!-- Active Power-up Timers -->
 <div id="powerupHud"></div>
 
-<!-- toast notification -->
+<!-- Toast Notification Banner -->
 <div class="toast" id="toastEl"></div>
 
-<!-- game area -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     GAMEPLAY STAGE & BESPOKE ILLUSTRATED KITTEN RIG
+     ═══════════════════════════════════════════════════════════════════════ -->
 <div id="gameArea">
   <div id="kittenWrap">
-    <div class="bubble" id="bubble">😋 Nom nom!</div>
+    <div class="bubble" id="bubble">Nom nom!</div>
     <div id="kittenInner">
       <div id="shieldDome"></div>
       <div id="magnetAura"></div>
-      <svg class="kitten" viewBox="0 0 480 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Body & Belly -->
-        <ellipse data-skin="fur" cx="240" cy="290" rx="120" ry="100" fill="#f4a94e"/>
-        <ellipse data-skin="belly" cx="240" cy="310" rx="72" ry="65" fill="#fde8c5"/>
-        <!-- Tail -->
-        <path data-skin-stroke="fur" d="M350 340 Q410 280 390 220 Q380 195 365 210 Q355 230 370 260 Q375 285 330 320" stroke="#f4a94e" stroke-width="22" stroke-linecap="round" fill="none"/>
-        <path data-skin-stroke="stripes" d="M350 340 Q410 280 390 220 Q380 195 365 210 Q355 230 370 260 Q375 285 330 320" stroke="#e8923a" stroke-width="8" stroke-linecap="round" fill="none"/>
-        <!-- Body stripes -->
-        <path data-skin-stroke="stripes" d="M175 250 Q190 265 180 285" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <path data-skin-stroke="stripes" d="M165 270 Q178 285 170 305" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <path data-skin-stroke="stripes" d="M305 250 Q290 265 300 285" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <path data-skin-stroke="stripes" d="M315 270 Q302 285 310 305" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <!-- Hind Paws -->
-        <ellipse data-skin="fur" cx="175" cy="375" rx="35" ry="22" fill="#f4a94e"/>
-        <ellipse data-skin="fur" cx="305" cy="375" rx="35" ry="22" fill="#f4a94e"/>
-        <ellipse data-skin="belly" cx="158" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="175" cy="392" rx="8" ry="6" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="192" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="288" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="305" cy="392" rx="8" ry="6" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="322" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-        <!-- Head -->
-        <ellipse data-skin="fur" cx="240" cy="165" rx="105" ry="95" fill="#f4a94e"/>
-        <!-- Forehead Stripes -->
-        <path data-skin-stroke="stripes" d="M200 95 Q205 115 200 135" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <path data-skin-stroke="stripes" d="M240 85 Q240 108 240 128" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <path data-skin-stroke="stripes" d="M280 95 Q275 115 280 135" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-        <!-- Ears -->
-        <polygon data-skin="fur" points="148,100 130,50 185,85" fill="#f4a94e"/>
-        <polygon data-skin="earInner" points="148,100 140,65 178,88" fill="#f7c0c0"/>
-        <polygon data-skin="fur" points="332,100 350,50 295,85" fill="#f4a94e"/>
-        <polygon data-skin="earInner" points="332,100 340,65 302,88" fill="#f7c0c0"/>
-        <!-- Eyes: Normal -->
-        <g id="eyesNormal">
-          <circle cx="210" cy="155" r="16" fill="white"/>
-          <circle cx="270" cy="155" r="16" fill="white"/>
-          <circle data-skin="eyes" id="pupilL" cx="213" cy="158" r="9" fill="#3a2000"/>
-          <circle data-skin="eyes" id="pupilR" cx="273" cy="158" r="9" fill="#3a2000"/>
-          <circle cx="216" cy="155" r="4" fill="white"/>
-          <circle cx="276" cy="155" r="4" fill="white"/>
-        </g>
-        <!-- Eyes: Happy Closed -->
-        <g id="eyesHappy" style="display:none">
-          <path d="M195 155 Q210 140 225 155" stroke="#3a2000" stroke-width="5" stroke-linecap="round" fill="none"/>
-          <path d="M255 155 Q270 140 285 155" stroke="#3a2000" stroke-width="5" stroke-linecap="round" fill="none"/>
-        </g>
-        <!-- Eyes: Scared -->
-        <g id="eyesScared" style="display:none">
-          <circle cx="210" cy="155" r="18" fill="white"/>
-          <circle cx="270" cy="155" r="18" fill="white"/>
-          <circle cx="212" cy="158" r="11" fill="#3a2000"/>
-          <circle cx="272" cy="158" r="11" fill="#3a2000"/>
-          <circle cx="218" cy="153" r="5" fill="white"/>
-          <circle cx="278" cy="153" r="5" fill="white"/>
-        </g>
-        <!-- Cheeks & Nose -->
-        <ellipse cx="185" cy="178" rx="18" ry="11" fill="#f7b8b8" opacity="0.55"/>
-        <ellipse cx="295" cy="178" rx="18" ry="11" fill="#f7b8b8" opacity="0.55"/>
-        <polygon data-skin="nose" points="240,178 234,188 246,188" fill="#e05a8a"/>
-        <!-- Mouths -->
-        <path id="mouthNormal" d="M225 200 Q240 214 255 200" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
-        <path id="mouthHappy" style="display:none" d="M215 198 Q240 228 265 198" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
-        <ellipse id="tongue" style="display:none" cx="240" cy="215" rx="15" ry="10" fill="#e05a8a"/>
-        <path id="mouthSad" style="display:none" d="M225 208 Q240 196 255 208" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
-        <!-- Whiskers -->
-        <line x1="175" y1="183" x2="120" y2="173" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="175" y1="190" x2="118" y2="190" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="175" y1="197" x2="120" y2="207" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="305" y1="183" x2="360" y2="173" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="305" y1="190" x2="362" y2="190" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-        <line x1="305" y1="197" x2="360" y2="207" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- Front Paws -->
-        <path data-skin-stroke="fur" d="M165 280 Q140 310 130 340" stroke="#f4a94e" stroke-width="26" stroke-linecap="round" fill="none"/>
-        <path data-skin-stroke="fur" d="M315 280 Q340 310 350 340" stroke="#f4a94e" stroke-width="26" stroke-linecap="round" fill="none"/>
-        <ellipse data-skin="fur" cx="124" cy="348" rx="24" ry="16" fill="#f4a94e"/>
-        <ellipse data-skin="belly" cx="111" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="124" cy="360" rx="7" ry="5" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="137" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-        <ellipse data-skin="fur" cx="356" cy="348" rx="24" ry="16" fill="#f4a94e"/>
-        <ellipse data-skin="belly" cx="343" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="356" cy="360" rx="7" ry="5" fill="#fde8c5"/>
-        <ellipse data-skin="belly" cx="369" cy="356" rx="7" ry="5" fill="#fde8c5"/>
+      <svg class="kitten" viewBox="0 0 480 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Ground Drop Shadow -->
+        <ellipse cx="240" cy="398" rx="148" ry="16" fill="#3a1b06" fill-opacity="0.24"/>
 
-        <!-- Unlockable Skin Accessories -->
+        <!-- Cozy Plush Orchard Cushion Base -->
+        <path d="M104 364C104 344 155 334 240 334C325 334 376 344 376 364C376 386 325 396 240 396C155 396 104 386 104 364Z" fill="#e53935" stroke="#3a1b06" stroke-width="7" stroke-linejoin="round"/>
+        <path d="M118 360C155 374 325 374 362 360" stroke="#ffcdd2" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 8"/>
+
+        <!-- Articulated Swaying Tail -->
+        <g class="kitten-tail">
+          <path data-skin-stroke="fur" d="M336 335C398 310 420 245 392 204C378 184 354 198 360 222C366 248 352 286 318 312" stroke="#3a1b06" stroke-width="34" stroke-linecap="round" fill="none"/>
+          <path data-skin-stroke="fur" d="M336 335C398 310 420 245 392 204C378 184 354 198 360 222C366 248 352 286 318 312" stroke="#f4a94e" stroke-width="20" stroke-linecap="round" fill="none"/>
+          <path data-skin-stroke="stripes" d="M394 218C384 222 374 220 366 214" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+          <path data-skin-stroke="stripes" d="M388 248C376 250 366 246 360 240" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+        </g>
+
+        <!-- Plump Sitting Torso -->
+        <path data-skin="fur" d="M134 356C126 292 156 232 240 232C324 232 354 292 346 356C342 376 300 384 240 384C180 384 138 376 134 356Z" fill="#f4a94e" stroke="#3a1b06" stroke-width="7.5" stroke-linejoin="round"/>
+
+        <!-- Soft Cream Belly Patch & Chest Fur Tuft -->
+        <path data-skin="belly" d="M174 356C170 302 194 258 240 258C286 258 310 302 306 356C290 370 190 370 174 356Z" fill="#fde8c5"/>
+        <path data-skin="belly" d="M222 252L232 268L240 256L248 268L258 252" fill="#fde8c5" stroke="#3a1b06" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Torso Side Stripes -->
+        <path data-skin-stroke="stripes" d="M146 286Q172 292 166 310" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M140 314Q166 320 160 336" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M334 286Q308 292 314 310" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M340 314Q314 320 320 336" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+
+        <!-- Hind Paws with Pink Toe Beans -->
+        <g>
+          <ellipse data-skin="fur" cx="164" cy="374" rx="34" ry="20" fill="#f4a94e" stroke="#3a1b06" stroke-width="6.5"/>
+          <ellipse cx="149" cy="380" rx="6.5" ry="5" fill="#f48fb1"/>
+          <ellipse cx="164" cy="383" rx="6.5" ry="5" fill="#f48fb1"/>
+          <ellipse cx="179" cy="380" rx="6.5" ry="5" fill="#f48fb1"/>
+
+          <ellipse data-skin="fur" cx="316" cy="374" rx="34" ry="20" fill="#f4a94e" stroke="#3a1b06" stroke-width="6.5"/>
+          <ellipse cx="301" cy="380" rx="6.5" ry="5" fill="#f48fb1"/>
+          <ellipse cx="316" cy="383" rx="6.5" ry="5" fill="#f48fb1"/>
+          <ellipse cx="331" cy="380" rx="6.5" ry="5" fill="#f48fb1"/>
+        </g>
+
+        <!-- Under-Chin Ambient Shadow -->
+        <ellipse cx="240" cy="248" rx="68" ry="14" fill="#3a1b06" fill-opacity="0.18"/>
+
+        <!-- Sculpted Head with Fluffy Cheek Ruffs & Curved Ears -->
+        <path data-skin="fur" d="M148 118L124 46C122 38 130 34 138 38L196 76C210 72 225 70 240 70C255 70 270 72 284 76L342 38C350 34 358 38 356 46L332 118C352 138 362 164 356 190C366 198 364 212 350 218C334 238 292 250 240 250C188 250 146 238 130 218C116 212 114 198 124 190C118 164 128 138 148 118Z" fill="#f4a94e" stroke="#3a1b06" stroke-width="7.5" stroke-linejoin="round"/>
+
+        <!-- Inner Pink Ear Shells & Ear Fluff -->
+        <path data-skin="earInner" d="M152 110L138 60L184 86C170 92 159 100 152 110Z" fill="#f7b8c4" stroke="#3a1b06" stroke-width="4.5" stroke-linejoin="round"/>
+        <path data-skin="earInner" d="M328 110L342 60L296 86C310 92 321 100 328 110Z" fill="#f7b8c4" stroke="#3a1b06" stroke-width="4.5" stroke-linejoin="round"/>
+
+        <!-- Forehead Tabby M-Stripes -->
+        <path data-skin-stroke="stripes" d="M206 86Q212 110 204 126" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M240 78V122" stroke="#e8923a" stroke-width="8" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M274 86Q268 110 276 126" stroke="#e8923a" stroke-width="7" stroke-linecap="round"/>
+
+        <!-- Rosy Blush Cheeks -->
+        <ellipse cx="174" cy="186" rx="20" ry="11" fill="#ff7597" opacity="0.55"/>
+        <ellipse cx="306" cy="186" rx="20" ry="11" fill="#ff7597" opacity="0.55"/>
+
+        <!-- Eyes: Normal (Glossy Mascot Eyes with Pupil Tracking) -->
+        <g id="eyesNormal">
+          <circle cx="200" cy="158" r="22" fill="#ffffff" stroke="#3a1b06" stroke-width="5.5"/>
+          <circle cx="280" cy="158" r="22" fill="#ffffff" stroke="#3a1b06" stroke-width="5.5"/>
+          <circle data-skin="eyes" id="pupilL" cx="202" cy="160" r="13.5" fill="#3a1b06"/>
+          <circle data-skin="eyes" id="pupilR" cx="282" cy="160" r="13.5" fill="#3a1b06"/>
+          <circle cx="207" cy="153" r="5.5" fill="#ffffff"/>
+          <circle cx="287" cy="153" r="5.5" fill="#ffffff"/>
+          <circle cx="196" cy="166" r="2.5" fill="#ffffff" fill-opacity="0.85"/>
+          <circle cx="276" cy="166" r="2.5" fill="#ffffff" fill-opacity="0.85"/>
+        </g>
+
+        <!-- Eyes: Happy Closed Arcs -->
+        <g id="eyesHappy" style="display:none">
+          <path d="M178 162Q200 138 222 162" stroke="#3a1b06" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <path d="M258 162Q280 138 302 162" stroke="#3a1b06" stroke-width="7" stroke-linecap="round" fill="none"/>
+        </g>
+
+        <!-- Eyes: Scared / Sour Shock -->
+        <g id="eyesScared" style="display:none">
+          <circle cx="200" cy="158" r="24" fill="#ffffff" stroke="#3a1b06" stroke-width="5.5"/>
+          <circle cx="280" cy="158" r="24" fill="#ffffff" stroke="#3a1b06" stroke-width="5.5"/>
+          <circle cx="200" cy="158" r="7" fill="#3a1b06"/>
+          <circle cx="280" cy="158" r="7" fill="#3a1b06"/>
+          <path d="M318 134C324 146 324 154 318 158C312 154 312 146 318 134Z" fill="#4fc3f7" stroke="#3a1b06" stroke-width="3"/>
+        </g>
+
+        <!-- Glossy Cat Nose -->
+        <path data-skin="nose" d="M231 178C231 174 249 174 249 178L240 190L231 178Z" fill="#ff5c8d" stroke="#3a1b06" stroke-width="4.5" stroke-linejoin="round"/>
+
+        <!-- Mouth: Normal Cute W-Mouth -->
+        <path id="mouthNormal" d="M216 198Q228 212 240 196Q252 212 264 198" stroke="#3a1b06" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+        <!-- Mouth: Happy Wide Chomp with Cat Fangs & Tongue -->
+        <path id="mouthHappy" style="display:none" d="M210 196C210 234 270 234 270 196Z" fill="#6d1b2b" stroke="#3a1b06" stroke-width="5.5" stroke-linejoin="round"/>
+        <ellipse id="tongue" style="display:none" cx="240" cy="216" rx="18" ry="11" fill="#ff7597" stroke="#3a1b06" stroke-width="3.5"/>
+
+        <!-- Mouth: Sad Quiver -->
+        <path id="mouthSad" style="display:none" d="M220 212Q240 196 260 212" stroke="#3a1b06" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+
+        <!-- Outlined Whiskers -->
+        <g stroke="#3a1b06" stroke-width="4" stroke-linecap="round">
+          <line x1="154" y1="180" x2="102" y2="170"/>
+          <line x1="152" y1="192" x2="98" y2="192"/>
+          <line x1="154" y1="204" x2="104" y2="214"/>
+          <line x1="326" y1="180" x2="378" y2="170"/>
+          <line x1="328" y1="192" x2="382" y2="192"/>
+          <line x1="326" y1="204" x2="376" y2="214"/>
+        </g>
+
+        <!-- Articulated Front Paws with Toe Beans -->
+        <g class="kitten-paws">
+          <ellipse data-skin="fur" cx="142" cy="316" rx="28" ry="22" transform="rotate(-18 142 316)" fill="#f4a94e" stroke="#3a1b06" stroke-width="6.5"/>
+          <circle cx="132" cy="310" r="4.5" fill="#f48fb1"/>
+          <circle cx="142" cy="306" r="4.5" fill="#f48fb1"/>
+          <circle cx="152" cy="311" r="4.5" fill="#f48fb1"/>
+
+          <ellipse data-skin="fur" cx="338" cy="316" rx="28" ry="22" transform="rotate(18 338 316)" fill="#f4a94e" stroke="#3a1b06" stroke-width="6.5"/>
+          <circle cx="328" cy="311" r="4.5" fill="#f48fb1"/>
+          <circle cx="338" cy="306" r="4.5" fill="#f48fb1"/>
+          <circle cx="348" cy="310" r="4.5" fill="#f48fb1"/>
+        </g>
+
+        <!-- Unlockable Outlined Skin Accessories -->
         <g id="accBowtie" style="display:none">
-          <polygon points="240,236 212,222 212,250" fill="#e53935"/>
-          <polygon points="240,236 268,222 268,250" fill="#e53935"/>
-          <circle cx="240" cy="236" r="7" fill="#b71c1c"/>
+          <polygon points="240,248 206,230 206,266" fill="#ff1744" stroke="#3a1b06" stroke-width="5" stroke-linejoin="round"/>
+          <polygon points="240,248 274,230 274,266" fill="#ff1744" stroke="#3a1b06" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="240" cy="248" r="9" fill="#d50000" stroke="#3a1b06" stroke-width="4.5"/>
         </g>
         <g id="accFlower" style="display:none">
-          <circle cx="176" cy="82" r="12" fill="#f48fb1"/>
-          <circle cx="192" cy="76" r="12" fill="#f48fb1"/>
-          <circle cx="192" cy="94" r="12" fill="#f48fb1"/>
-          <circle cx="176" cy="98" r="12" fill="#f48fb1"/>
-          <circle cx="184" cy="88" r="7" fill="#ffee58"/>
+          <g stroke="#3a1b06" stroke-width="4">
+            <circle cx="172" cy="78" r="13" fill="#ff80ab"/>
+            <circle cx="192" cy="72" r="13" fill="#ff80ab"/>
+            <circle cx="194" cy="92" r="13" fill="#ff80ab"/>
+            <circle cx="174" cy="96" r="13" fill="#ff80ab"/>
+            <circle cx="183" cy="84" r="8" fill="#ffd700"/>
+          </g>
         </g>
         <g id="accVisor" style="display:none">
-          <rect x="176" y="138" width="128" height="32" rx="16" fill="#00e5ff" fill-opacity="0.72" stroke="#ffffff" stroke-width="3"/>
-          <line x1="190" y1="146" x2="290" y2="146" stroke="#ffffff" stroke-width="2" stroke-opacity="0.8"/>
+          <rect x="164" y="136" width="152" height="38" rx="19" fill="#00e5ff" fill-opacity="0.82" stroke="#3a1b06" stroke-width="5.5"/>
+          <path d="M182 146H298" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
         </g>
         <g id="accCrown" style="display:none">
-          <polygon points="200,82 212,42 240,66 268,42 280,82" fill="#ffd700" stroke="#ff8f00" stroke-width="4" stroke-linejoin="round"/>
-          <circle cx="240" cy="68" r="5" fill="#e91e63"/>
-          <circle cx="216" cy="72" r="4" fill="#00e5ff"/>
-          <circle cx="264" cy="72" r="4" fill="#00e5ff"/>
+          <polygon points="194,76 206,26 240,54 274,26 286,76" fill="#ffd700" stroke="#3a1b06" stroke-width="6" stroke-linejoin="round"/>
+          <circle cx="240" cy="58" r="6.5" fill="#ff1744" stroke="#3a1b06" stroke-width="3"/>
+          <circle cx="212" cy="62" r="5" fill="#00e5ff" stroke="#3a1b06" stroke-width="3"/>
+          <circle cx="268" cy="62" r="5" fill="#00e5ff" stroke="#3a1b06" stroke-width="3"/>
         </g>
       </svg>
     </div>
   </div>
 </div>
 
-<!-- controls hint -->
-<div id="controlsHint">💡 Tap, swipe-slice, or move kitten (A/D / ←/→ / drag)</div>
+<!-- Controls Hint Pill -->
+<div id="controlsHint">SLICE, TAP, OR MOVE KITTEN (A/D · ARROWS · DRAG)</div>
 
-<!-- purr & fever meters -->
+<!-- Bottom-Right Purr & Fever Overdrive Gauge Plaque -->
 <div id="purrSection">
-  <div class="fever-wrap" title="Purr Overdrive / Fever Bar"><div id="feverBar"></div></div>
-  <div class="purr-wrap" title="Purr Meter"><div id="purrBar"></div></div>
-  <div id="purrLabel">😿 Not purring...</div>
+  <div class="gauge-row">
+    <span class="gauge-tag fever-tag">FEVER</span>
+    <div class="fever-wrap" title="Purr Overdrive / Fever Bar"><div id="feverBar"></div></div>
+  </div>
+  <div class="gauge-row">
+    <span class="gauge-tag purr-tag">PURR</span>
+    <div class="purr-wrap" title="Purr Meter"><div id="purrBar"></div></div>
+  </div>
+  <div id="purrLabel">Waiting for citrus...</div>
 </div>
 
-<!-- start screen -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TITLE SCREEN (FOCUSED ARCADE STAGE + MODAL DOCK)
+     ═══════════════════════════════════════════════════════════════════════ -->
 <div class="overlay" id="startScreen">
-  <div class="overlay-inner">
-    <div class="start-kitten" id="startKittenEmoji">🐱</div>
-    <h1>🍊 Citrus Kitten</h1>
-    <p>Tap or swipe-slice falling citrus, or move the kitten to catch them in its mouth! Keep your kitten fed and dodge sour lemons.</p>
+  <div class="title-stage-card">
+    <!-- Custom Illustrated Mascot Emblem & 3D Game Logo Lockup -->
+    <div class="logo-lockup">
+      <div class="start-kitten" id="startKittenEmoji" aria-hidden="true">
+        <svg class="hero-emblem-svg" viewBox="0 0 120 110" fill="none">
+          <circle cx="60" cy="60" r="44" fill="#ff9800" stroke="#3a1b06" stroke-width="6"/>
+          <circle cx="60" cy="60" r="35" fill="#fff8e1"/>
+          <circle cx="60" cy="60" r="30" fill="#ffb300"/>
+          <path d="M60 30V90M30 60H90M39 39L81 81M81 39L39 81" stroke="#fff8e1" stroke-width="4"/>
+          <!-- Cute Cat Head Peeking Over Orange Wheel -->
+          <path d="M32 42L24 14L46 28C55 25 65 25 74 28L96 14L88 42C94 52 92 66 80 72C68 78 52 78 40 72C28 66 26 52 32 42Z" fill="#f4a94e" stroke="#3a1b06" stroke-width="5.5" stroke-linejoin="round"/>
+          <circle cx="48" cy="48" r="6" fill="#3a1b06"/>
+          <circle cx="72" cy="48" r="6" fill="#3a1b06"/>
+          <circle cx="50" cy="46" r="2.2" fill="#fff"/>
+          <circle cx="74" cy="46" r="2.2" fill="#fff"/>
+          <path d="M52 58Q56 63 60 57Q64 63 68 58" stroke="#3a1b06" stroke-width="3.8" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="logo-text-group">
+        <span class="logo-ribbon">CANTRONN ARCADE</span>
+        <h1 class="game-logo-title">CITRUS KITTEN</h1>
+        <p class="game-logo-sub">Slice juicy combos, feed your tabby &amp; dodge sour lemons!</p>
+      </div>
+    </div>
 
-    <!-- Game Mode Selector -->
+    <!-- Game Mode Selector Cards -->
     <div class="mode-grid" id="modeSelector"></div>
 
-    <!-- Kitten Wardrobe -->
-    <div class="wardrobe-wrap">
-      <h3>🎀 Kitten Wardrobe</h3>
-      <div class="skin-row" id="skinSelector"></div>
+    <!-- Primary CTA Row -->
+    <div class="cta-row">
+      <button class="btn btn-play-hero" id="startBtn" type="button">PLAY NOW</button>
+      <div class="high-score-pill">
+        <span class="hs-label">BEST SCORE</span>
+        <b class="hs-val" id="startBest">0</b>
+      </div>
     </div>
 
-    <div class="stat-grid">
-      <span>🍊 Valencia Orange</span><b>+10 pts</b>
-      <span>🍊✨ Golden Mandarin</span><b>+30 pts (3x)</b>
-      <span>🍑⚡ Zesty Tangerine</span><b>+15 pts, +2 combo</b>
-      <span>🍊👑 Giant Pomelo</span><b>+20 pts, +hunger</b>
-      <span>🍋☠️ Sour Lemon</span><b>-1 life (avoid!)</b>
-      <span>🌈 Purr Fever (Max)</span><b>2x pts + Golden Shower</b>
+    <!-- Tactile Bottom Navigation Dock (Opens Dedicated Game Drawers) -->
+    <div class="menu-dock">
+      <button type="button" class="dock-btn" data-modal="wardrobeModal">
+        <span class="dock-icon" id="dockIconWardrobe"></span>
+        <span class="dock-label">Wardrobe</span>
+      </button>
+      <button type="button" class="dock-btn" data-modal="leaderboardModal">
+        <span class="dock-icon" id="dockIconTrophy"></span>
+        <span class="dock-label">Rankings</span>
+      </button>
+      <button type="button" class="dock-btn" data-modal="achievementsModal">
+        <span class="dock-icon" id="dockIconMedals"></span>
+        <span class="dock-label">Badges</span>
+      </button>
+      <button type="button" class="dock-btn" data-modal="guideModal">
+        <span class="dock-icon" id="dockIconGuide"></span>
+        <span class="dock-label">Guide</span>
+      </button>
     </div>
 
-    <button class="btn" id="startBtn">🐱 Let's Go!</button>
-    <p style="font-size:0.85rem;opacity:0.8;">High score: <b id="startBest">0</b></p>
-
-    <div id="startSessionStats" class="session-stats"></div>
-    <div id="startLeaderboard" style="width:100%"></div>
-    <div id="startAchievements" style="width:100%"></div>
+    <!-- Sub-Modal Drawer Container -->
+    <div class="game-modal-backdrop" id="gameModalBackdrop" style="display:none">
+      <div class="game-modal-card">
+        <div class="modal-header">
+          <h2 id="gameModalTitle">Kitten Wardrobe</h2>
+          <button type="button" class="modal-close-btn" id="gameModalClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <!-- Tab 1: Wardrobe -->
+          <div class="modal-pane" id="wardrobeModal">
+            <p class="pane-hint">Unlock special outfits by completing orchard milestones!</p>
+            <div class="skin-row" id="skinSelector"></div>
+          </div>
+          <!-- Tab 2: Leaderboard & Career Stats -->
+          <div class="modal-pane" id="leaderboardModal" style="display:none">
+            <div id="startSessionStats" class="session-stats"></div>
+            <div id="startLeaderboard" style="width:100%"></div>
+          </div>
+          <!-- Tab 3: Achievements -->
+          <div class="modal-pane" id="achievementsModal" style="display:none">
+            <div id="startAchievements" style="width:100%"></div>
+          </div>
+          <!-- Tab 4: Illustrated Field Guide -->
+          <div class="modal-pane" id="guideModal" style="display:none">
+            <div class="stat-grid">
+              <span>Valencia Orange</span><b>+10 PTS · Refills Hunger</b>
+              <span>Golden Mandarin</span><b>+30 PTS (3x) · +Fever</b>
+              <span>Zesty Tangerine</span><b>+15 PTS · +2 Combo Boost</b>
+              <span>Giant Pomelo</span><b>+20 PTS · 1.65x Fullness</b>
+              <span>Sour Lemon</span><b>HAZARD · Costs 1 Life!</b>
+              <span>Purr Fever (100%)</span><b>2x Score · Golden Shower</b>
+              <span>Direct Mouth Catch</span><b>+20% Bonus Points</b>
+              <span>3+ Fruit Ninja Swipe</span><b>+25 PTS Multi-Slice Bonus</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- game over screen -->
+<!-- ═══════════════════════════════════════════════════════════════════════
+     GAME OVER RESULTS BOARD
+     ═══════════════════════════════════════════════════════════════════════ -->
 <div class="overlay" id="gameOverScreen" style="display:none">
-  <div class="overlay-inner">
-    <h1 id="gameOverTitle">😿 Game Over</h1>
+  <div class="title-stage-card gameover-card">
+    <span class="logo-ribbon gameover-ribbon">ROUND COMPLETE</span>
+    <h1 id="gameOverTitle">Game Over</h1>
     <div class="stat-grid" id="gameOverStats"></div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-      <button class="btn" id="restartBtn">🍊 Play Again</button>
-      <button class="btn-secondary" id="menuBtn">🏠 Mode &amp; Skins</button>
-      <button class="btn-secondary" id="shareBtn">📋 Share Score</button>
-    </div>
     <div id="gameOverAchievements" style="width:100%;"></div>
+    <div class="gameover-actions">
+      <button class="btn" id="restartBtn" type="button">PLAY AGAIN</button>
+      <button class="btn-secondary" id="menuBtn" type="button">TITLE &amp; MODES</button>
+      <button class="btn-secondary" id="shareBtn" type="button">SHARE SCORE</button>
+    </div>
     <div id="gameOverLeaderboard" style="width:100%;"></div>
   </div>
 </div>
