@@ -1,0 +1,23 @@
+{
+  "name": "cantronn-citrus-kitten",
+  "version": "2.0.0",
+  "description": "Citrus Kitten (Cantronn) — An addictive arcade action game where you feed a hungry tabby kitten falling citrus fruits, slice combos, trigger Purr Fever, and unlock skins.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test tests/game.test.js",
+    "start": "npx --yes serve . -l 3000",
+    "dev": "node scripts/build.js && npx --yes serve . -l 3000"
+  },
+  "keywords": [
+    "arcade",
+    "game",
+    "citrus-kitten",
+    "cantronn",
+    "html5-game",
+    "web-audio"
+  ],
+  "author": "Cantronn",
+  "license": "MIT"
+}

@@ -2,384 +2,980 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Citrus Kitten</title>
-  <meta name="description" content="Feed the kitten! Catch falling oranges, dodge lemons, and rack up combos in this addictive arcade game."/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Citrus Kitten — Cantronn Arcade</title>
+  <meta name="description" content="Feed the kitten! Catch and slice falling oranges, dodge sour lemons, trigger Purr Fever, and rack up combos in this addictive arcade game."/>
   <meta name="theme-color" content="#ffd06e"/>
-  <meta property="og:title" content="Citrus Kitten"/>
-  <meta property="og:description" content="Feed the kitten! Catch falling oranges, dodge lemons, and rack up combos in this addictive arcade game."/>
+  <meta property="og:title" content="Citrus Kitten — Cantronn Arcade"/>
+  <meta property="og:description" content="Feed the kitten! Catch and slice falling oranges, dodge sour lemons, trigger Purr Fever, and rack up combos in this addictive arcade game."/>
   <meta property="og:type" content="website"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="manifest" href="manifest.json"/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet"/>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{
-      font-family:'Fredoka One',cursive,sans-serif;
-      background:linear-gradient(160deg,#fff7e0,#ffd06e);
-      overflow:hidden;height:100vh;width:100vw;
-      user-select:none;
-      touch-action:manipulation;
-    }
+/* ═══════════════════════════════════════════════════════════════════════════
+   CITRUS KITTEN (CANTRONN) — COMPLETE STYLESHEET
+   ═══════════════════════════════════════════════════════════════════════════ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-    /* ── HUD ── */
-    #hud{
-      position:fixed;top:0;left:0;right:0;z-index:100;
-      display:flex;align-items:center;justify-content:space-between;
-      padding:8px 14px;
-      background:rgba(255,255,255,0.45);
-      backdrop-filter:blur(6px);
-      border-bottom:3px solid #f4a94e;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .hud-box{
-      display:flex;flex-direction:column;align-items:center;
-      font-size:clamp(0.7rem,2vw,1rem);color:#7a3800;
-    }
-    .hud-val{font-size:clamp(0.9rem,2.5vw,1.4rem);color:#b85c00;}
-    #lives span{font-size:clamp(0.9rem,2.5vw,1.3rem);}
-    .hunger-wrap{
-      flex:1;max-width:200px;
-      background:rgba(255,255,255,0.55);
-      border:3px solid #f4a94e;border-radius:999px;height:16px;overflow:hidden;
-    }
-    #hungerBar{
-      height:100%;width:100%;
-      background:#8bc34a;
-      border-radius:999px;
-      transition:width 0.3s,background 0.5s;
-    }
-    .combo-flash{
-      position:fixed;top:clamp(70px, 12vh, 100px);left:50%;transform:translateX(-50%);
-      font-size:clamp(1.4rem,4vw,2.2rem);color:#ff6f00;
-      pointer-events:none;z-index:200;
-      animation:combo-up 0.9s ease-out forwards;
-    }
-    @keyframes combo-up{
-      0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
-      100%{opacity:0;transform:translateX(-50%) translateY(-60px) scale(1.4);}
-    }
+:root {
+  --bg-top: #fff7e0;
+  --bg-bot: #ffd06e;
+  --accent: #ff9800;
+  --accent-dark: #c66800;
+  --text-main: #7a3800;
+  --text-bold: #b85c00;
+  --border-warm: #f4a94e;
+  --card-bg: rgba(255, 255, 255, 0.62);
+}
 
-    /* ── music / sfx toggle ── */
-    #musicToggle, #sfxToggle{
-      background:rgba(255,255,255,0.7);border:2px solid #f4a94e;
-      border-radius:999px;padding:3px 10px;cursor:pointer;
-      font-size:1rem;color:#b85c00;
-    }
+body {
+  font-family: 'Fredoka One', cursive, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(160deg, var(--bg-top), var(--bg-bot));
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: background 0.8s ease;
+}
 
-    /* ── pause button ── */
-    #pauseBtn{
-      background:rgba(255,255,255,0.7);border:2px solid #f4a94e;
-      border-radius:999px;padding:3px 10px;cursor:pointer;
-      font-size:1rem;color:#b85c00;
-    }
+body.fever-mode {
+  background: linear-gradient(160deg, #fff8c4, #ffae42, #ff6f61);
+}
 
-    /* ── pause overlay ── */
-    #pauseOverlay{
-      position:fixed;inset:0;z-index:900;
-      display:none;align-items:center;justify-content:center;
-      background:rgba(255,220,120,0.85);
-      backdrop-filter:blur(8px);
-      font-size:clamp(2.5rem,10vw,5rem);color:#b85c00;
-      text-shadow:3px 3px 0 #ffe0a0;
-    }
+/* ── Canvas FX Layer ── */
+#fxCanvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 250;
+}
 
-    /* ── low hunger vignette ── */
-    #hungerVignette{
-      position:fixed;inset:0;pointer-events:none;z-index:95;
-      box-shadow:inset 0 0 80px 30px rgba(220,30,30,0.55);
-      opacity:0;transition:opacity 0.5s;
-    }
-    #hungerVignette.active{ opacity:1; animation:vignette-pulse 1s ease-in-out infinite alternate; }
-    @keyframes vignette-pulse{
-      0%{opacity:0.5;}100%{opacity:1;}
-    }
+/* ── HUD ── */
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 3px solid var(--border-warm);
+  gap: 8px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 16px rgba(184, 92, 0, 0.1);
+}
 
-    /* ── power-up HUD ── */
-    #powerupHud{
-      position:fixed;top:68px;right:10px;z-index:110;
-      display:flex;flex-direction:column;gap:4px;align-items:flex-end;
-    }
-    .powerup-active{
-      background:rgba(255,255,255,0.85);border:2px solid #f4a94e;
-      border-radius:10px;padding:3px 10px;font-size:0.85rem;color:#7a3800;
-      display:flex;align-items:center;gap:6px;
-    }
-    .powerup-bar-wrap{width:60px;height:6px;background:#eee;border-radius:3px;overflow:hidden;}
-    .powerup-bar{height:100%;background:#ff9800;border-radius:3px;transition:width 0.1s;}
+.hud-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: clamp(0.65rem, 1.8vw, 0.9rem);
+  color: var(--text-main);
+  min-width: 48px;
+}
 
-    /* ── game area ── */
-    #gameArea{position:fixed;inset:0;top:60px;}
+.hud-val {
+  font-size: clamp(0.9rem, 2.4vw, 1.35rem);
+  color: var(--text-bold);
+}
 
-    /* screen shake */
-    @keyframes shake{
-      0%{transform:translate(0,0);}
-      15%{transform:translate(-8px,4px);}
-      30%{transform:translate(8px,-4px);}
-      45%{transform:translate(-6px,3px);}
-      60%{transform:translate(6px,-3px);}
-      75%{transform:translate(-3px,2px);}
-      100%{transform:translate(0,0);}
-    }
-    #gameArea.shaking{animation:shake 0.4s ease-out;}
+#lives {
+  font-size: clamp(0.85rem, 2.2vw, 1.25rem);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
 
-    /* ── kitten ── */
-    #kittenWrap{
-      position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
-      animation:idle-sway 3s ease-in-out infinite;
-      cursor:default;
-      pointer-events:none;
-      z-index:1;
-    }
-    @keyframes idle-sway{
-      0%,100%{transform:translateX(-50%) rotate(-1.5deg);}
-      50%{transform:translateX(-50%) rotate(1.5deg);}
-    }
-    svg.kitten{width:min(260px,42vw);height:auto;
-      filter:drop-shadow(0 8px 20px rgba(184,92,0,.3));}
-    #kittenWrap.chomping{animation:chomp 0.35s ease-out;}
-    @keyframes chomp{
-      0%{transform:translateX(-50%) scale(1);}
-      30%{transform:translateX(-50%) scale(1.1) rotate(4deg);}
-      60%{transform:translateX(-50%) scale(0.93) rotate(-3deg);}
-      100%{transform:translateX(-50%) scale(1) rotate(0);}
-    }
-    #kittenWrap.alarmed{animation:alarmed 0.4s ease-out;}
-    @keyframes alarmed{
-      0%,100%{transform:translateX(-50%);}
-      25%{transform:translateX(calc(-50% - 12px)) rotate(-5deg);}
-      75%{transform:translateX(calc(-50% + 12px)) rotate(5deg);}
-    }
+.hunger-wrap {
+  width: clamp(90px, 18vw, 175px);
+  background: rgba(255, 255, 255, 0.7);
+  border: 3px solid var(--border-warm);
+  border-radius: 999px;
+  height: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+}
 
-    /* ── speech bubble ── */
-    .bubble{
-      position:absolute;bottom:calc(100% + 10px);left:50%;
-      transform:translateX(-50%) scale(0);transform-origin:bottom center;
-      background:white;border:3px solid #f4a94e;border-radius:18px;
-      padding:7px 16px;font-size:clamp(0.8rem,2.5vw,1rem);
-      color:#b85c00;white-space:nowrap;pointer-events:none;
-      transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);z-index:10;
-    }
-    .bubble::after{
-      content:'';position:absolute;bottom:-12px;left:50%;
-      transform:translateX(-50%);
-      border:8px solid transparent;border-top-color:#f4a94e;
-    }
-    .bubble.show{transform:translateX(-50%) scale(1);}
+#hungerBar {
+  height: 100%;
+  width: 100%;
+  background: #8bc34a;
+  border-radius: 999px;
+  transition: width 0.22s ease-out, background 0.4s;
+}
 
-    /* ── falling fruits ── */
-    .orange-fruit{
-      position:absolute;font-size:clamp(2.75rem,6vw,3.25rem);
-      cursor:pointer;line-height:1;
-      transition:transform 0.1s;
-      filter:drop-shadow(0 4px 6px rgba(0,0,0,.15));
-      z-index:50;
-      touch-action:none;
-    }
-    .orange-fruit:hover{transform:scale(1.15);}
-    .orange-fruit.giant{font-size:clamp(3.5rem,8vw,4.5rem);}
-    .orange-fruit.caught{
-      pointer-events:none;
-      animation:catch-burst 0.35s ease-out forwards;
-    }
-    @keyframes catch-burst{
-      0%{transform:scale(1);opacity:1;}
-      60%{transform:scale(1.8);opacity:0.6;}
-      100%{transform:scale(0.2);opacity:0;}
-    }
-    .orange-fruit.missed{
-      pointer-events:none;
-      animation:miss-splat 0.4s ease-in forwards;
-    }
-    @keyframes miss-splat{
-      0%{transform:scale(1);opacity:1;}
-      100%{transform:scale(2) rotate(30deg);opacity:0;}
-    }
+.hud-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-    /* ── catch particles ── */
-    .catch-particle{
-      position:fixed;pointer-events:none;z-index:400;
-      font-size:1.1rem;
-      animation:particle-burst 0.7s ease-out forwards;
-    }
-    @keyframes particle-burst{
-      0%{opacity:1;transform:translate(0,0) scale(1);}
-      100%{opacity:0;transform:translate(var(--tx,0), var(--ty,0)) scale(0.3);}
-    }
+.hud-btn {
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid var(--border-warm);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-bold);
+  transition: transform 0.1s, background 0.15s;
+}
 
-    /* ── score pop ── */
-    .score-pop{
-      position:fixed;pointer-events:none;z-index:300;
-      font-size:clamp(1rem,3vw,1.5rem);font-weight:bold;color:#ff6f00;
-      animation:score-float 0.8s ease-out forwards;
-    }
-    @keyframes score-float{
-      0%{opacity:1;transform:translateY(0) scale(1);}
-      100%{opacity:0;transform:translateY(-60px) scale(0.7);}
-    }
+.hud-btn:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
 
-    /* ── purr bar ── */
-    #purrSection{
-      position:fixed;bottom:8px;right:12px;z-index:100;
-      display:flex;flex-direction:column;align-items:flex-end;gap:3px;
-    }
-    .purr-wrap{
-      width:min(180px,28vw);height:14px;
-      background:rgba(255,255,255,0.5);
-      border:2px solid #f4a94e;border-radius:999px;overflow:hidden;
-    }
-    #purrBar{height:100%;width:0%;
-      background:linear-gradient(90deg,#ff9800,#ff5722);
-      border-radius:999px;transition:width 0.4s;}
-    #purrLabel{font-size:0.75rem;color:#7a3800;}
+.hud-btn:active {
+  transform: translateY(1px);
+}
 
-    /* ── screen flash ── */
-    #flashOverlay{
-      position:fixed;inset:0;pointer-events:none;z-index:500;
-      opacity:0;transition:opacity 0.05s;
-    }
+/* ── Combo Flash ── */
+.combo-flash {
+  position: fixed;
+  top: clamp(72px, 12vh, 104px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  color: #ff6f00;
+  text-shadow: 0 2px 0 #fff, 0 4px 12px rgba(255, 111, 0, 0.35);
+  pointer-events: none;
+  z-index: 350;
+  animation: combo-up 0.9s ease-out forwards;
+}
 
-    /* ── level-up freeze overlay ── */
-    #levelUpOverlay{
-      position:fixed;inset:0;z-index:800;pointer-events:none;
-      display:flex;align-items:center;justify-content:center;
-      opacity:0;transition:opacity 0.15s;
-      background:rgba(255,200,50,0.0);
-    }
-    #levelUpOverlay.show{
-      opacity:1;
-      background:rgba(255,200,50,0.25);
-    }
-    #levelUpBadge{
-      font-size:clamp(2rem,8vw,4rem);color:white;
-      text-shadow:3px 3px 0 #c66800,0 0 30px #ff9800;
-      transform:scale(0);
-      transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    #levelUpOverlay.show #levelUpBadge{transform:scale(1);}
+@keyframes combo-up {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-55px) scale(1.38);
+  }
+}
 
-    /* ── background citrus ── */
-    .bg-fruit{
-      position:fixed;font-size:1.8rem;pointer-events:none;opacity:0.18;
-      animation:bg-float 8s ease-in-out infinite;
-    }
-    @keyframes bg-float{
-      0%,100%{transform:translateY(0) rotate(0deg);}
-      50%{transform:translateY(-18px) rotate(15deg);}
-    }
+/* ── Pause Overlay ── */
+#pauseOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: none;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 220, 120, 0.88);
+  backdrop-filter: blur(8px);
+  font-size: clamp(2.2rem, 8vw, 4.2rem);
+  color: var(--text-bold);
+  text-shadow: 3px 3px 0 #ffe0a0;
+}
 
-    /* ── overlays ── */
-    .overlay{
-      position:fixed;inset:0;z-index:1000;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      background:rgba(255,220,120,0.92);
-      backdrop-filter:blur(10px);
-      gap:16px;text-align:center;padding:20px;
-      overflow-y:auto;
-    }
-    .overlay h1{font-size:clamp(2rem,8vw,4rem);color:#b85c00;
-      text-shadow:3px 3px 0 #ffe0a0;}
-    .overlay p{font-size:clamp(0.95rem,3vw,1.3rem);color:#7a3800;max-width:480px;}
-    .btn{
-      padding:12px 36px;font-size:clamp(1rem,3.5vw,1.5rem);
-      font-family:inherit;background:#ff9800;color:white;
-      border:none;border-radius:999px;cursor:pointer;
-      box-shadow:0 6px 0 #c66800;
-      transition:transform 0.1s,box-shadow 0.1s;
-    }
-    .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c66800;}
-    .btn-secondary{
-      padding:10px 28px;font-size:clamp(0.9rem,2.5vw,1.2rem);
-      font-family:inherit;background:#fff3d6;color:#b85c00;
-      border:3px solid #f4a94e;border-radius:999px;cursor:pointer;
-      transition:transform 0.1s,background 0.15s;
-    }
-    .btn-secondary:active{transform:translateY(2px);background:#ffe0a0;}
-    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;
-      font-size:clamp(0.85rem,2.5vw,1.05rem);color:#7a3800;}
-    .stat-grid b{color:#b85c00;}
-    /* ── leaderboard ── */
-    .leaderboard{
-      width:100%;max-width:440px;
-      background:rgba(255,255,255,0.5);border:2px solid #f4a94e;
-      border-radius:14px;padding:10px 14px;
-    }
-    .leaderboard h3{font-size:1.1rem;color:#b85c00;margin-bottom:6px;}
-    .lb-row{
-      display:flex;gap:8px;font-size:0.85rem;color:#7a3800;
-      padding:3px 0;border-bottom:1px solid rgba(244,169,78,0.3);
-      align-items:center;
-    }
-    .lb-row:last-child{border-bottom:none;}
-    .lb-rank{width:22px;text-align:right;font-weight:bold;color:#b85c00;}
-    .lb-score{flex:1;font-weight:bold;}
-    .lb-detail{font-size:0.75rem;opacity:0.75;}
+#pauseOverlay .pause-sub {
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: var(--text-main);
+  text-shadow: none;
+}
 
-    /* ── achievements ── */
-    .achievements-wrap{
-      width:100%;max-width:440px;
-      background:rgba(255,255,255,0.5);border:2px solid #f4a94e;
-      border-radius:14px;padding:10px 14px;
-    }
-    .achievements-wrap h3{font-size:1.1rem;color:#b85c00;margin-bottom:6px;}
-    .ach-grid{display:flex;flex-wrap:wrap;gap:6px;}
-    .ach-badge{
-      padding:4px 10px;border-radius:999px;font-size:0.78rem;
-      border:2px solid #f4a94e;
-    }
-    .ach-badge.unlocked{background:#fff7e0;color:#b85c00;}
-    .ach-badge.locked{background:rgba(200,200,200,0.3);color:#aaa;border-color:#ccc;}
+/* ── Low Hunger Vignette ── */
+#hungerVignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 95;
+  box-shadow: inset 0 0 85px 32px rgba(220, 30, 30, 0.55);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
 
-    /* ── toast ── */
-    .toast{
-      position:fixed;bottom:60px;left:50%;transform:translateX(-50%) translateY(20px);
-      background:rgba(50,30,10,0.92);color:#ffe0a0;
-      padding:10px 22px;border-radius:999px;
-      font-size:1rem;z-index:900;pointer-events:none;
-      opacity:0;transition:opacity 0.3s,transform 0.3s;
-    }
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#hungerVignette.active {
+  opacity: 1;
+  animation: vignette-pulse 0.9s ease-in-out infinite alternate;
+}
 
-    /* ── session stats ── */
-    .session-stats{
-      font-size:0.82rem;color:#7a3800;opacity:0.8;
-    }
+@keyframes vignette-pulse {
+  0% { opacity: 0.45; }
+  100% { opacity: 1; }
+}
 
-    /* ── start screen kitten bounce ── */
-    .start-kitten{
-      font-size:5rem;
-      animation: start-bounce 1.2s ease-in-out infinite;
-      display:block;
-    }
-    @keyframes start-bounce{
-      0%,100%{ transform:translateY(0) scale(1); }
-      40%{ transform:translateY(-18px) scale(1.08); }
-      60%{ transform:translateY(-12px) scale(1.05); }
-    }
+/* ── Power-up HUD ── */
+#powerupHud {
+  position: fixed;
+  top: 68px;
+  right: 12px;
+  z-index: 280;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
 
-    /* ── overlay fade-in ── */
-    .overlay-enter{
-      animation: overlay-fade 0.4s ease-out;
-    }
-    @keyframes overlay-fade{
-      0%{ opacity:0; transform:scale(0.95); }
-      100%{ opacity:1; transform:scale(1); }
-    }
+.powerup-active {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--border-warm);
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 3px 10px rgba(184, 92, 0, 0.12);
+}
+
+.powerup-bar-wrap {
+  width: 64px;
+  height: 7px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.powerup-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+
+/* ── Game Area ── */
+#gameArea {
+  position: fixed;
+  inset: 0;
+  top: 60px;
+  overflow: hidden;
+}
+
+@keyframes shake {
+  0% { transform: translate(0, 0); }
+  15% { transform: translate(-8px, 4px); }
+  30% { transform: translate(8px, -4px); }
+  45% { transform: translate(-6px, 3px); }
+  60% { transform: translate(6px, -3px); }
+  75% { transform: translate(-3px, 2px); }
+  100% { transform: translate(0, 0); }
+}
+
+#gameArea.shaking {
+  animation: shake 0.4s ease-out;
+}
+
+/* ── Kitten Character ── */
+#kittenWrap {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: grab;
+  z-index: 20;
+  transition: filter 0.3s;
+}
+
+#kittenWrap:active {
+  cursor: grabbing;
+}
+
+#kittenInner {
+  animation: idle-sway 3s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes idle-sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(1.5deg); }
+}
+
+svg.kitten {
+  width: min(250px, 40vw);
+  height: auto;
+  filter: drop-shadow(0 8px 20px rgba(184, 92, 0, 0.3));
+  display: block;
+}
+
+#kittenWrap.chomping #kittenInner {
+  animation: chomp 0.35s ease-out;
+}
+
+@keyframes chomp {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12) rotate(4deg); }
+  60% { transform: scale(0.93) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+#kittenWrap.alarmed #kittenInner {
+  animation: alarmed 0.4s ease-out;
+}
+
+@keyframes alarmed {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-12px) rotate(-5deg); }
+  75% { transform: translateX(12px) rotate(5deg); }
+}
+
+/* Shield Dome & Magnet Aura around Kitten */
+#shieldDome {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 4px solid rgba(0, 229, 255, 0.85);
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.12) 40%, rgba(0, 191, 165, 0.32) 100%);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.5);
+  pointer-events: none;
+  display: none;
+  animation: shield-pulse 1.4s ease-in-out infinite alternate;
+}
+
+#shieldDome.active {
+  display: block;
+}
+
+@keyframes shield-pulse {
+  0% { transform: scale(0.98); opacity: 0.8; }
+  100% { transform: scale(1.03); opacity: 1; }
+}
+
+#magnetAura {
+  position: absolute;
+  inset: -22px;
+  border-radius: 50%;
+  border: 3px dashed rgba(171, 71, 188, 0.75);
+  pointer-events: none;
+  display: none;
+  animation: magnet-spin 3s linear infinite;
+}
+
+#magnetAura.active {
+  display: block;
+}
+
+@keyframes magnet-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Speech Bubble ── */
+.bubble {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  transform-origin: bottom center;
+  background: white;
+  border: 3px solid var(--border-warm);
+  border-radius: 18px;
+  padding: 7px 16px;
+  font-size: clamp(0.8rem, 2.4vw, 1rem);
+  color: var(--text-bold);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 30;
+  box-shadow: 0 4px 12px rgba(184, 92, 0, 0.15);
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: var(--border-warm);
+}
+
+.bubble.show {
+  transform: translateX(-50%) scale(1);
+}
+
+/* ── Falling Fruits ── */
+.orange-fruit {
+  position: absolute;
+  font-size: clamp(2.8rem, 6.2vw, 3.4rem);
+  cursor: pointer;
+  line-height: 1;
+  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.18));
+  z-index: 50;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  margin-top: -32px;
+  border-radius: 50%;
+}
+
+.orange-fruit .fruit-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 1.05rem;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+  pointer-events: none;
+}
+
+.orange-fruit.giant {
+  font-size: clamp(3.6rem, 8vw, 4.6rem);
+  width: 84px;
+  height: 84px;
+  margin-left: -42px;
+  margin-top: -42px;
+}
+
+.orange-fruit.golden {
+  background: radial-gradient(circle, rgba(255, 235, 59, 0.55) 0%, rgba(255, 193, 7, 0) 72%);
+  animation: golden-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes golden-pulse {
+  0% { filter: drop-shadow(0 0 8px #ffd700); }
+  100% { filter: drop-shadow(0 0 18px #ffab00); }
+}
+
+.orange-fruit.lemon {
+  background: radial-gradient(circle, rgba(205, 220, 57, 0.35) 0%, rgba(205, 220, 57, 0) 70%);
+}
+
+.orange-fruit.powerup {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 10%, rgba(79, 195, 247, 0.45) 70%, rgba(41, 182, 246, 0.8) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 16px rgba(41, 182, 246, 0.5);
+  font-size: clamp(2rem, 5vw, 2.5rem);
+}
+
+.orange-fruit.caught {
+  pointer-events: none;
+  animation: catch-burst 0.32s ease-out forwards;
+}
+
+@keyframes catch-burst {
+  0% { transform: scale(1); opacity: 1; }
+  60% { transform: scale(1.75); opacity: 0.65; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
+
+.orange-fruit.missed {
+  pointer-events: none;
+  animation: miss-splat 0.38s ease-in forwards;
+}
+
+@keyframes miss-splat {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.9) rotate(28deg); opacity: 0; }
+}
+
+/* ── Catch Particles & Score Pops ── */
+.catch-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 400;
+  font-size: 1.15rem;
+  animation: particle-burst 0.68s ease-out forwards;
+}
+
+@keyframes particle-burst {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.3); }
+}
+
+.score-pop {
+  position: fixed;
+  pointer-events: none;
+  z-index: 380;
+  font-size: clamp(1.05rem, 3vw, 1.55rem);
+  font-weight: bold;
+  color: #ff6f00;
+  text-shadow: 0 2px 0 #fff, 0 3px 8px rgba(0, 0, 0, 0.15);
+  animation: score-float 0.8s ease-out forwards;
+}
+
+@keyframes score-float {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -58px) scale(0.75); }
+}
+
+/* ── Bottom Purr & Fever Meters ── */
+#purrSection {
+  position: fixed;
+  bottom: 10px;
+  right: 12px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.purr-wrap, .fever-wrap {
+  width: min(175px, 28vw);
+  height: 13px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid var(--border-warm);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+#purrBar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff9800, #ff5722);
+  border-radius: 999px;
+  transition: width 0.35s;
+}
+
+#feverBar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffd600, #ff6d00, #d500f9);
+  border-radius: 999px;
+  transition: width 0.25s;
+}
+
+#purrLabel {
+  font-size: 0.74rem;
+  color: var(--text-main);
+  text-align: right;
+}
+
+#controlsHint {
+  position: fixed;
+  bottom: 10px;
+  left: 12px;
+  z-index: 120;
+  font-size: 0.74rem;
+  color: var(--text-main);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* ── Screen Flash & Level-Up Overlays ── */
+#flashOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 500;
+  opacity: 0;
+  transition: opacity 0.08s;
+}
+
+#levelUpOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 800;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: rgba(255, 200, 50, 0);
+}
+
+#levelUpOverlay.show {
+  opacity: 1;
+  background: rgba(255, 200, 50, 0.24);
+}
+
+#levelUpBadge {
+  font-size: clamp(2rem, 8vw, 4rem);
+  color: white;
+  text-shadow: 3px 3px 0 #c66800, 0 0 30px #ff9800;
+  transform: scale(0);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#levelUpOverlay.show #levelUpBadge {
+  transform: scale(1);
+}
+
+/* ── Background Floating Citrus ── */
+.bg-fruit {
+  position: fixed;
+  font-size: 1.8rem;
+  pointer-events: none;
+  opacity: 0.18;
+  animation: bg-float 8s ease-in-out infinite;
+}
+
+@keyframes bg-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(15deg); }
+}
+
+/* ── Start & Game Over Overlays ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: rgba(255, 224, 138, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  gap: 14px;
+  text-align: center;
+  padding: 24px 16px 40px;
+  overflow-y: auto;
+}
+
+.overlay-inner {
+  width: 100%;
+  max-width: 560px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.overlay h1 {
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  color: var(--text-bold);
+  text-shadow: 3px 3px 0 #ffe0a0;
+  line-height: 1.1;
+}
+
+.overlay p {
+  font-size: clamp(0.9rem, 2.6vw, 1.15rem);
+  color: var(--text-main);
+  max-width: 480px;
+  line-height: 1.35;
+}
+
+.btn {
+  padding: 12px 38px;
+  font-size: clamp(1.05rem, 3.5vw, 1.45rem);
+  font-family: inherit;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 0 var(--accent-dark);
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+}
+
+.btn:hover {
+  background: #ffa726;
+}
+
+.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.btn-secondary {
+  padding: 10px 26px;
+  font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+  font-family: inherit;
+  background: #fff3d6;
+  color: var(--text-bold);
+  border: 3px solid var(--border-warm);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.btn-secondary:hover {
+  background: #ffe8b3;
+}
+
+.btn-secondary:active {
+  transform: translateY(2px);
+  background: #ffe0a0;
+}
+
+/* ── Mode Selector Cards ── */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.mode-card {
+  background: rgba(255, 255, 255, 0.55);
+  border: 2.5px solid var(--border-warm);
+  border-radius: 14px;
+  padding: 8px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: transform 0.12s, background 0.15s, border-color 0.15s;
+}
+
+.mode-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.mode-card.selected {
+  background: #fff8e6;
+  border-color: #ff6f00;
+  box-shadow: 0 4px 12px rgba(255, 111, 0, 0.22);
+}
+
+.mode-card .mode-icon {
+  font-size: 1.45rem;
+}
+
+.mode-card .mode-title {
+  font-size: 0.85rem;
+  color: var(--text-bold);
+}
+
+.mode-card .mode-desc {
+  font-size: 0.68rem;
+  color: var(--text-main);
+  opacity: 0.85;
+  line-height: 1.15;
+}
+
+/* ── Kitten Wardrobe Selector ── */
+.wardrobe-wrap {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid var(--border-warm);
+  border-radius: 14px;
+  padding: 9px 12px;
+}
+
+.wardrobe-wrap h3 {
+  font-size: 0.95rem;
+  color: var(--text-bold);
+  margin-bottom: 6px;
+}
+
+.skin-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.skin-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  border: 2px solid var(--border-warm);
+  background: #fff7e0;
+  color: var(--text-bold);
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.15s;
+}
+
+.skin-chip.selected {
+  background: #ff9800;
+  color: #fff;
+  border-color: #c66800;
+}
+
+.skin-chip.locked {
+  background: rgba(200, 200, 200, 0.35);
+  color: #999;
+  border-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* ── Stat Grid ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 20px;
+  font-size: clamp(0.82rem, 2.3vw, 1rem);
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.48);
+  border: 2px solid var(--border-warm);
+  border-radius: 14px;
+  padding: 10px 18px;
+  width: 100%;
+}
+
+.stat-grid span {
+  text-align: left;
+}
+
+.stat-grid b {
+  color: var(--text-bold);
+  text-align: right;
+}
+
+/* ── Leaderboard & Achievements ── */
+.leaderboard, .achievements-wrap {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.52);
+  border: 2px solid var(--border-warm);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+.leaderboard h3, .achievements-wrap h3 {
+  font-size: 1rem;
+  color: var(--text-bold);
+  margin-bottom: 6px;
+}
+
+.lb-row {
+  display: flex;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text-main);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(244, 169, 78, 0.3);
+  align-items: center;
+}
+
+.lb-row:last-child {
+  border-bottom: none;
+}
+
+.lb-rank {
+  width: 24px;
+  text-align: right;
+  font-weight: bold;
+  color: var(--text-bold);
+}
+
+.lb-score {
+  flex: 1;
+  font-weight: bold;
+  text-align: left;
+}
+
+.lb-detail {
+  font-size: 0.74rem;
+  opacity: 0.8;
+}
+
+.ach-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.ach-badge {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  border: 2px solid var(--border-warm);
+}
+
+.ach-badge.unlocked {
+  background: #fff7e0;
+  color: var(--text-bold);
+}
+
+.ach-badge.locked {
+  background: rgba(200, 200, 200, 0.3);
+  color: #9e9e9e;
+  border-color: #ccc;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 62px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(50, 30, 10, 0.92);
+  color: #ffe0a0;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s, transform 0.28s;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.session-stats {
+  font-size: 0.8rem;
+  color: var(--text-main);
+  opacity: 0.85;
+}
+
+.start-kitten {
+  font-size: 4.2rem;
+  animation: start-bounce 1.2s ease-in-out infinite;
+  display: block;
+  line-height: 1;
+}
+
+@keyframes start-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-14px) scale(1.08); }
+  60% { transform: translateY(-9px) scale(1.04); }
+}
+
+.overlay-enter {
+  animation: overlay-fade 0.35s ease-out;
+}
+
+@keyframes overlay-fade {
+  0% { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 520px) {
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+  .mode-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 8px 12px;
+    gap: 10px;
+  }
+  #controlsHint {
+    display: none;
+  }
+}
   </style>
 </head>
 <body>
 
 <!-- background decorations -->
-<div class="bg-fruit" style="top:6%;left:4%;animation-delay:0s">🍊</div>
-<div class="bg-fruit" style="top:12%;right:5%;animation-delay:1.5s">🍋</div>
-<div class="bg-fruit" style="top:55%;left:2%;animation-delay:3s">🍊</div>
-<div class="bg-fruit" style="top:70%;right:3%;animation-delay:2s">🌿</div>
-<div class="bg-fruit" style="bottom:10%;left:8%;animation-delay:4s">🍋</div>
-<div class="bg-fruit" style="bottom:15%;right:8%;animation-delay:1s">🍊</div>
+<div class="bg-fruit" style="top:8%;left:4%;animation-delay:0s">🍊</div>
+<div class="bg-fruit" style="top:14%;right:5%;animation-delay:1.5s">🍋</div>
+<div class="bg-fruit" style="top:54%;left:2%;animation-delay:3s">🍊</div>
+<div class="bg-fruit" style="top:68%;right:3%;animation-delay:2s">🌿</div>
+<div class="bg-fruit" style="bottom:12%;left:8%;animation-delay:4s">🍋</div>
+<div class="bg-fruit" style="bottom:16%;right:8%;animation-delay:1s">🍊</div>
+
+<!-- canvas layer for slice trails & juice bursts -->
+<canvas id="fxCanvas"></canvas>
 
 <!-- flash overlay -->
 <div id="flashOverlay"></div>
@@ -388,9 +984,12 @@
 <div id="hungerVignette"></div>
 
 <!-- pause overlay -->
-<div id="pauseOverlay" style="display:none">⏸ PAUSED</div>
+<div id="pauseOverlay" style="display:none">
+  <div>⏸ PAUSED</div>
+  <div class="pause-sub">Press P / Esc or click ▶️ to resume</div>
+</div>
 
-<!-- level-up overlay -->
+<!-- level-up / fever overlay -->
 <div id="levelUpOverlay"><div id="levelUpBadge"></div></div>
 
 <!-- HUD -->
@@ -399,12 +998,12 @@
     <span>SCORE</span>
     <span class="hud-val" id="scoreDisplay">0</span>
   </div>
-  <div class="hud-box">
-    <span>HUNGER</span>
+  <div class="hud-box" id="hungerHudBox">
+    <span id="hungerHudLabel">HUNGER</span>
     <div class="hunger-wrap"><div id="hungerBar"></div></div>
   </div>
-  <div class="hud-box">
-    <span>LIVES</span>
+  <div class="hud-box" id="livesHudBox">
+    <span id="livesHudLabel">LIVES</span>
     <div id="lives">❤️❤️❤️</div>
   </div>
   <div class="hud-box">
@@ -415,9 +1014,12 @@
     <span>BEST</span>
     <span class="hud-val" id="bestDisplay">0</span>
   </div>
-  <button id="musicToggle" title="Toggle music" aria-label="Toggle music">🔊</button>
-  <button id="sfxToggle" title="Toggle SFX &amp; Speech" aria-label="Toggle SFX and speech">🗣️</button>
-  <button id="pauseBtn" title="Pause (P or Esc)" aria-label="Pause game" style="display:none">⏸️</button>
+  <div class="hud-controls">
+    <button class="hud-btn" id="musicToggle" title="Toggle Music" aria-label="Toggle music">🔊</button>
+    <button class="hud-btn" id="sfxToggle" title="Toggle SFX &amp; Purr" aria-label="Toggle SFX and purr">🔔</button>
+    <button class="hud-btn" id="voiceToggle" title="Voice Mode (Unhinged / Wholesome / Off)" aria-label="Toggle voice mode">🌶️</button>
+    <button class="hud-btn" id="pauseBtn" title="Pause (P or Esc)" aria-label="Pause game" style="display:none">⏸️</button>
+  </div>
 </div>
 
 <div id="powerupHud"></div>
@@ -429,1260 +1031,2861 @@
 <div id="gameArea">
   <div id="kittenWrap">
     <div class="bubble" id="bubble">😋 Nom nom!</div>
-    <svg class="kitten" viewBox="0 0 480 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="240" cy="290" rx="120" ry="100" fill="#f4a94e"/>
-      <ellipse cx="240" cy="310" rx="72" ry="65" fill="#fde8c5"/>
-      <path d="M350 340 Q410 280 390 220 Q380 195 365 210 Q355 230 370 260 Q375 285 330 320" stroke="#f4a94e" stroke-width="22" stroke-linecap="round" fill="none"/>
-      <path d="M350 340 Q410 280 390 220 Q380 195 365 210 Q355 230 370 260 Q375 285 330 320" stroke="#e8923a" stroke-width="8" stroke-linecap="round" fill="none"/>
-      <path d="M175 250 Q190 265 180 285" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <path d="M165 270 Q178 285 170 305" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <path d="M305 250 Q290 265 300 285" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <path d="M315 270 Q302 285 310 305" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <ellipse cx="175" cy="375" rx="35" ry="22" fill="#f4a94e"/>
-      <ellipse cx="305" cy="375" rx="35" ry="22" fill="#f4a94e"/>
-      <ellipse cx="158" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-      <ellipse cx="175" cy="392" rx="8" ry="6" fill="#fde8c5"/>
-      <ellipse cx="192" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-      <ellipse cx="288" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-      <ellipse cx="305" cy="392" rx="8" ry="6" fill="#fde8c5"/>
-      <ellipse cx="322" cy="388" rx="8" ry="6" fill="#fde8c5"/>
-      <ellipse cx="240" cy="165" rx="105" ry="95" fill="#f4a94e"/>
-      <path d="M200 95 Q205 115 200 135" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <path d="M240 85 Q240 108 240 128" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <path d="M280 95 Q275 115 280 135" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
-      <polygon points="148,100 130,50 185,85" fill="#f4a94e"/>
-      <polygon points="148,100 140,65 178,88" fill="#f7c0c0"/>
-      <polygon points="332,100 350,50 295,85" fill="#f4a94e"/>
-      <polygon points="332,100 340,65 302,88" fill="#f7c0c0"/>
-      <!-- eyes: normal -->
-      <g id="eyesNormal">
-        <circle cx="210" cy="155" r="16" fill="white"/>
-        <circle cx="270" cy="155" r="16" fill="white"/>
-        <!-- pupils (eye tracking) -->
-        <circle id="pupilL" cx="213" cy="158" r="9" fill="#3a2000"/>
-        <circle id="pupilR" cx="273" cy="158" r="9" fill="#3a2000"/>
-        <circle cx="216" cy="155" r="4" fill="white"/>
-        <circle cx="276" cy="155" r="4" fill="white"/>
-      </g>
-      <!-- eyes: happy closed -->
-      <g id="eyesHappy" style="display:none">
-        <path d="M195 155 Q210 140 225 155" stroke="#3a2000" stroke-width="5" stroke-linecap="round" fill="none"/>
-        <path d="M255 155 Q270 140 285 155" stroke="#3a2000" stroke-width="5" stroke-linecap="round" fill="none"/>
-      </g>
-      <!-- eyes: scared -->
-      <g id="eyesScared" style="display:none">
-        <circle cx="210" cy="155" r="18" fill="white"/>
-        <circle cx="270" cy="155" r="18" fill="white"/>
-        <circle cx="212" cy="158" r="11" fill="#3a2000"/>
-        <circle cx="272" cy="158" r="11" fill="#3a2000"/>
-        <circle cx="218" cy="153" r="5" fill="white"/>
-        <circle cx="278" cy="153" r="5" fill="white"/>
-      </g>
-      <ellipse cx="185" cy="178" rx="18" ry="11" fill="#f7b8b8" opacity="0.55"/>
-      <ellipse cx="295" cy="178" rx="18" ry="11" fill="#f7b8b8" opacity="0.55"/>
-      <polygon points="240,178 234,188 246,188" fill="#e05a8a"/>
-      <!-- mouth normal -->
-      <path id="mouthNormal" d="M225 200 Q240 214 255 200" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
-      <!-- mouth happy open -->
-      <path id="mouthHappy" style="display:none" d="M215 198 Q240 228 265 198" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
-      <ellipse id="tongue" style="display:none" cx="240" cy="215" rx="15" ry="10" fill="#e05a8a"/>
-      <!-- mouth sad -->
-      <path id="mouthSad" style="display:none" d="M225 208 Q240 196 255 208" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
-      <line x1="175" y1="183" x2="120" y2="173" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="175" y1="190" x2="118" y2="190" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="175" y1="197" x2="120" y2="207" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="305" y1="183" x2="360" y2="173" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="305" y1="190" x2="362" y2="190" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="305" y1="197" x2="360" y2="207" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M165 280 Q140 310 130 340" stroke="#f4a94e" stroke-width="26" stroke-linecap="round" fill="none"/>
-      <path d="M315 280 Q340 310 350 340" stroke="#f4a94e" stroke-width="26" stroke-linecap="round" fill="none"/>
-      <ellipse cx="124" cy="348" rx="24" ry="16" fill="#f4a94e"/>
-      <ellipse cx="111" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-      <ellipse cx="124" cy="360" rx="7" ry="5" fill="#fde8c5"/>
-      <ellipse cx="137" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-      <ellipse cx="356" cy="348" rx="24" ry="16" fill="#f4a94e"/>
-      <ellipse cx="343" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-      <ellipse cx="356" cy="360" rx="7" ry="5" fill="#fde8c5"/>
-      <ellipse cx="369" cy="356" rx="7" ry="5" fill="#fde8c5"/>
-    </svg>
+    <div id="kittenInner">
+      <div id="shieldDome"></div>
+      <div id="magnetAura"></div>
+      <svg class="kitten" viewBox="0 0 480 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body & Belly -->
+        <ellipse data-skin="fur" cx="240" cy="290" rx="120" ry="100" fill="#f4a94e"/>
+        <ellipse data-skin="belly" cx="240" cy="310" rx="72" ry="65" fill="#fde8c5"/>
+        <!-- Tail -->
+        <path data-skin-stroke="fur" d="M350 340 Q410 280 390 220 Q380 195 365 210 Q355 230 370 260 Q375 285 330 320" stroke="#f4a94e" stroke-width="22" stroke-linecap="round" fill="none"/>
+        <path data-skin-stroke="stripes" d="M350 340 Q410 280 390 220 Q380 195 365 210 Q355 230 370 260 Q375 285 330 320" stroke="#e8923a" stroke-width="8" stroke-linecap="round" fill="none"/>
+        <!-- Body stripes -->
+        <path data-skin-stroke="stripes" d="M175 250 Q190 265 180 285" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M165 270 Q178 285 170 305" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M305 250 Q290 265 300 285" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M315 270 Q302 285 310 305" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <!-- Hind Paws -->
+        <ellipse data-skin="fur" cx="175" cy="375" rx="35" ry="22" fill="#f4a94e"/>
+        <ellipse data-skin="fur" cx="305" cy="375" rx="35" ry="22" fill="#f4a94e"/>
+        <ellipse data-skin="belly" cx="158" cy="388" rx="8" ry="6" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="175" cy="392" rx="8" ry="6" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="192" cy="388" rx="8" ry="6" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="288" cy="388" rx="8" ry="6" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="305" cy="392" rx="8" ry="6" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="322" cy="388" rx="8" ry="6" fill="#fde8c5"/>
+        <!-- Head -->
+        <ellipse data-skin="fur" cx="240" cy="165" rx="105" ry="95" fill="#f4a94e"/>
+        <!-- Forehead Stripes -->
+        <path data-skin-stroke="stripes" d="M200 95 Q205 115 200 135" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M240 85 Q240 108 240 128" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <path data-skin-stroke="stripes" d="M280 95 Q275 115 280 135" stroke="#e8923a" stroke-width="5" stroke-linecap="round"/>
+        <!-- Ears -->
+        <polygon data-skin="fur" points="148,100 130,50 185,85" fill="#f4a94e"/>
+        <polygon data-skin="earInner" points="148,100 140,65 178,88" fill="#f7c0c0"/>
+        <polygon data-skin="fur" points="332,100 350,50 295,85" fill="#f4a94e"/>
+        <polygon data-skin="earInner" points="332,100 340,65 302,88" fill="#f7c0c0"/>
+        <!-- Eyes: Normal -->
+        <g id="eyesNormal">
+          <circle cx="210" cy="155" r="16" fill="white"/>
+          <circle cx="270" cy="155" r="16" fill="white"/>
+          <circle data-skin="eyes" id="pupilL" cx="213" cy="158" r="9" fill="#3a2000"/>
+          <circle data-skin="eyes" id="pupilR" cx="273" cy="158" r="9" fill="#3a2000"/>
+          <circle cx="216" cy="155" r="4" fill="white"/>
+          <circle cx="276" cy="155" r="4" fill="white"/>
+        </g>
+        <!-- Eyes: Happy Closed -->
+        <g id="eyesHappy" style="display:none">
+          <path d="M195 155 Q210 140 225 155" stroke="#3a2000" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <path d="M255 155 Q270 140 285 155" stroke="#3a2000" stroke-width="5" stroke-linecap="round" fill="none"/>
+        </g>
+        <!-- Eyes: Scared -->
+        <g id="eyesScared" style="display:none">
+          <circle cx="210" cy="155" r="18" fill="white"/>
+          <circle cx="270" cy="155" r="18" fill="white"/>
+          <circle cx="212" cy="158" r="11" fill="#3a2000"/>
+          <circle cx="272" cy="158" r="11" fill="#3a2000"/>
+          <circle cx="218" cy="153" r="5" fill="white"/>
+          <circle cx="278" cy="153" r="5" fill="white"/>
+        </g>
+        <!-- Cheeks & Nose -->
+        <ellipse cx="185" cy="178" rx="18" ry="11" fill="#f7b8b8" opacity="0.55"/>
+        <ellipse cx="295" cy="178" rx="18" ry="11" fill="#f7b8b8" opacity="0.55"/>
+        <polygon data-skin="nose" points="240,178 234,188 246,188" fill="#e05a8a"/>
+        <!-- Mouths -->
+        <path id="mouthNormal" d="M225 200 Q240 214 255 200" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path id="mouthHappy" style="display:none" d="M215 198 Q240 228 265 198" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <ellipse id="tongue" style="display:none" cx="240" cy="215" rx="15" ry="10" fill="#e05a8a"/>
+        <path id="mouthSad" style="display:none" d="M225 208 Q240 196 255 208" stroke="#3a2000" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <!-- Whiskers -->
+        <line x1="175" y1="183" x2="120" y2="173" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="175" y1="190" x2="118" y2="190" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="175" y1="197" x2="120" y2="207" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="305" y1="183" x2="360" y2="173" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="305" y1="190" x2="362" y2="190" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="305" y1="197" x2="360" y2="207" stroke="white" stroke-opacity="0.8" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Front Paws -->
+        <path data-skin-stroke="fur" d="M165 280 Q140 310 130 340" stroke="#f4a94e" stroke-width="26" stroke-linecap="round" fill="none"/>
+        <path data-skin-stroke="fur" d="M315 280 Q340 310 350 340" stroke="#f4a94e" stroke-width="26" stroke-linecap="round" fill="none"/>
+        <ellipse data-skin="fur" cx="124" cy="348" rx="24" ry="16" fill="#f4a94e"/>
+        <ellipse data-skin="belly" cx="111" cy="356" rx="7" ry="5" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="124" cy="360" rx="7" ry="5" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="137" cy="356" rx="7" ry="5" fill="#fde8c5"/>
+        <ellipse data-skin="fur" cx="356" cy="348" rx="24" ry="16" fill="#f4a94e"/>
+        <ellipse data-skin="belly" cx="343" cy="356" rx="7" ry="5" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="356" cy="360" rx="7" ry="5" fill="#fde8c5"/>
+        <ellipse data-skin="belly" cx="369" cy="356" rx="7" ry="5" fill="#fde8c5"/>
+
+        <!-- Unlockable Skin Accessories -->
+        <g id="accBowtie" style="display:none">
+          <polygon points="240,236 212,222 212,250" fill="#e53935"/>
+          <polygon points="240,236 268,222 268,250" fill="#e53935"/>
+          <circle cx="240" cy="236" r="7" fill="#b71c1c"/>
+        </g>
+        <g id="accFlower" style="display:none">
+          <circle cx="176" cy="82" r="12" fill="#f48fb1"/>
+          <circle cx="192" cy="76" r="12" fill="#f48fb1"/>
+          <circle cx="192" cy="94" r="12" fill="#f48fb1"/>
+          <circle cx="176" cy="98" r="12" fill="#f48fb1"/>
+          <circle cx="184" cy="88" r="7" fill="#ffee58"/>
+        </g>
+        <g id="accVisor" style="display:none">
+          <rect x="176" y="138" width="128" height="32" rx="16" fill="#00e5ff" fill-opacity="0.72" stroke="#ffffff" stroke-width="3"/>
+          <line x1="190" y1="146" x2="290" y2="146" stroke="#ffffff" stroke-width="2" stroke-opacity="0.8"/>
+        </g>
+        <g id="accCrown" style="display:none">
+          <polygon points="200,82 212,42 240,66 268,42 280,82" fill="#ffd700" stroke="#ff8f00" stroke-width="4" stroke-linejoin="round"/>
+          <circle cx="240" cy="68" r="5" fill="#e91e63"/>
+          <circle cx="216" cy="72" r="4" fill="#00e5ff"/>
+          <circle cx="264" cy="72" r="4" fill="#00e5ff"/>
+        </g>
+      </svg>
+    </div>
   </div>
 </div>
 
-<!-- purr meter -->
+<!-- controls hint -->
+<div id="controlsHint">💡 Tap, swipe-slice, or move kitten (A/D / ←/→ / drag)</div>
+
+<!-- purr & fever meters -->
 <div id="purrSection">
-  <div class="purr-wrap"><div id="purrBar"></div></div>
-  <div id="purrLabel" style="font-size:0.72rem;color:#7a3800;text-align:right;">not purring...</div>
+  <div class="fever-wrap" title="Purr Overdrive / Fever Bar"><div id="feverBar"></div></div>
+  <div class="purr-wrap" title="Purr Meter"><div id="purrBar"></div></div>
+  <div id="purrLabel">😿 Not purring...</div>
 </div>
 
 <!-- start screen -->
 <div class="overlay" id="startScreen">
-  <div class="start-kitten">🐱</div>
-  <h1>🍊 Citrus Kitten</h1>
-  <p>Oranges are falling!<br>Click them before they hit the ground.<br>Keep your kitten fed — or it's game over.</p>
-  <div class="stat-grid">
-    <span>🍊 Orange</span><b>+10 pts</b>
-    <span>✨ Golden</span><b>+30 pts (3x)</b>
-    <span>🍋 Lemon</span><b>-1 life (avoid!)</b>
-    <span>🟢 Giant</span><b>+20 pts, +hunger</b>
-    <span>⚡ Combo x2/x3…</span><b>bonus pts</b>
-    <span>💔 Miss orange</span><b>-1 life</b>
+  <div class="overlay-inner">
+    <div class="start-kitten" id="startKittenEmoji">🐱</div>
+    <h1>🍊 Citrus Kitten</h1>
+    <p>Tap or swipe-slice falling citrus, or move the kitten to catch them in its mouth! Keep your kitten fed and dodge sour lemons.</p>
+
+    <!-- Game Mode Selector -->
+    <div class="mode-grid" id="modeSelector"></div>
+
+    <!-- Kitten Wardrobe -->
+    <div class="wardrobe-wrap">
+      <h3>🎀 Kitten Wardrobe</h3>
+      <div class="skin-row" id="skinSelector"></div>
+    </div>
+
+    <div class="stat-grid">
+      <span>🍊 Valencia Orange</span><b>+10 pts</b>
+      <span>🍊✨ Golden Mandarin</span><b>+30 pts (3x)</b>
+      <span>🍑⚡ Zesty Tangerine</span><b>+15 pts, +2 combo</b>
+      <span>🍊👑 Giant Pomelo</span><b>+20 pts, +hunger</b>
+      <span>🍋☠️ Sour Lemon</span><b>-1 life (avoid!)</b>
+      <span>🌈 Purr Fever (Max)</span><b>2x pts + Golden Shower</b>
+    </div>
+
+    <button class="btn" id="startBtn">🐱 Let's Go!</button>
+    <p style="font-size:0.85rem;opacity:0.8;">High score: <b id="startBest">0</b></p>
+
+    <div id="startSessionStats" class="session-stats"></div>
+    <div id="startLeaderboard" style="width:100%"></div>
+    <div id="startAchievements" style="width:100%"></div>
   </div>
-  <div id="startLeaderboard"></div>
-  <div id="startAchievements"></div>
-  <div id="startSessionStats" class="session-stats"></div>
-  <button class="btn" id="startBtn">🐱 Let's go!</button>
-  <p style="font-size:0.85rem;opacity:0.7;">High score: <span id="startBest">0</span></p>
 </div>
 
 <!-- game over screen -->
 <div class="overlay" id="gameOverScreen" style="display:none">
-  <h1 id="gameOverTitle">😿 Game Over</h1>
-  <div class="stat-grid" id="gameOverStats"></div>
-  <div id="gameOverLeaderboard"></div>
-  <div id="gameOverAchievements" style="max-width:440px;width:100%;"></div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-    <button class="btn" id="restartBtn">🍊 Play Again</button>
-    <button class="btn-secondary" id="shareBtn">📋 Share Score</button>
+  <div class="overlay-inner">
+    <h1 id="gameOverTitle">😿 Game Over</h1>
+    <div class="stat-grid" id="gameOverStats"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+      <button class="btn" id="restartBtn">🍊 Play Again</button>
+      <button class="btn-secondary" id="menuBtn">🏠 Mode &amp; Skins</button>
+      <button class="btn-secondary" id="shareBtn">📋 Share Score</button>
+    </div>
+    <div id="gameOverAchievements" style="width:100%;"></div>
+    <div id="gameOverLeaderboard" style="width:100%;"></div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-//  LEVEL CONFIG (logarithmic speed curve)
-// ═══════════════════════════════════════════════════════
-function getLevelCfg(idx){
+(function () {
+
+  "use strict";
+
+// ── Module: config.js ──
+// ═══════════════════════════════════════════════════════════════════════════
+//  CITRUS KITTEN (CANTRONN) — CONFIGURATION & GAME DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Computes the difficulty parameters for a given 0-based level index.
+ * Uses a logarithmic velocity curve, capped hunger drain, and scaled hunger refill.
+ */
+function getLevelCfg(idx, mode = 'classic') {
+  const safeIdx = Math.max(0, Number(idx) || 0);
+  const modeSpeedMult = mode === 'blitz' ? 1.15 : mode === 'zen' ? 0.85 : 1.0;
+  const modeSpawnMult = mode === 'blitz' ? 0.82 : mode === 'zen' ? 1.15 : 1.0;
+
   return {
-    speed:      130 + 320 * (1 - Math.exp(-idx / 7)),
-    spawnMs:    Math.max(350, 1400 - idx * 120),
-    maxOranges: Math.min(8, 3 + Math.floor(idx / 2)),
-    hungerDrain:Math.min(4 + idx * 1.5, 20),         // fix #6: cap total drain at 20/sec
-    hungerRefill:Math.max(12, 18 - idx * 0.5),      // fix #6: scaled refill floor
+    speed: (130 + 320 * (1 - Math.exp(-safeIdx / 7))) * modeSpeedMult,
+    spawnMs: Math.round(Math.max(320, (1400 - safeIdx * 120) * modeSpawnMult)),
+    maxOranges: Math.min(9, (mode === 'blitz' ? 4 : 3) + Math.floor(safeIdx / 2)),
+    hungerDrain: mode === 'zen' ? 0 : Math.min(4 + safeIdx * 1.5, 20),
+    hungerRefill: Math.max(12, 18 - safeIdx * 0.5),
   };
 }
 
-// ═══════════════════════════════════════════════════════
-//  GAME STATE
-// ═══════════════════════════════════════════════════════
-let gs = 'start';
-let score=0, lives=3, levelIdx=0, hunger=100;
-let combo=0, caught=0, missed=0;
-let oranges=[], spawnTimer=null, animFrame=null, lastTs=null;
-let bubbleTimer=null, eyeTimer=null;
-let levelFrozen=false;
-let paused=false;                                    // fix #19: pause state
-let pausedAt=0;
-let prevLives=3;
-let displayedScore=0;
-let scoreRollTimer=null;
-let sfxOn=true;                                      // fix #21: sfx/speech toggle
-
-// Power-up state
-const POWERUPS = {
-  slowTime:{ icon:'⏳', label:'Slow Time', dur:4000 },
-  magnet:  { icon:'🧲', label:'Magnet',    dur:3000 },
-  shield:  { icon:'🛡️', label:'Shield',    dur:null  }, // consumed on hit
+/**
+ * Game Modes
+ */
+const GAME_MODES = {
+  classic: {
+    id: 'classic',
+    name: 'Classic Arcade',
+    icon: '🎮',
+    badge: 'CLASSIC',
+    desc: 'Keep hunger full & protect your 3 lives! Bonus life every 10 levels.',
+    hasLives: true,
+    hasHungerDrain: true,
+    timeLimitSec: null,
+  },
+  blitz: {
+    id: 'blitz',
+    name: '90s Citrus Blitz',
+    icon: '⏱️',
+    badge: 'BLITZ',
+    desc: '90-second score rush! Golden oranges add +2s, sour lemons cost -5s.',
+    hasLives: false,
+    hasHungerDrain: false,
+    timeLimitSec: 90,
+  },
+  zen: {
+    id: 'zen',
+    name: 'Zen Purr Garden',
+    icon: '🌸',
+    badge: 'ZEN',
+    desc: 'Relaxing endless mode! No lives lost, no starvation, no hazards.',
+    hasLives: false,
+    hasHungerDrain: false,
+    timeLimitSec: null,
+  },
 };
-let activePowerups = {}; // key -> { endTime } or { active:true } for shield
-let shieldActive = false;
 
-const gameArea    = document.getElementById('gameArea');
-const kittenWrap  = document.getElementById('kittenWrap');
-const scoreDisp   = document.getElementById('scoreDisplay');
-const levelDisp   = document.getElementById('levelDisplay');
-const bestDisp    = document.getElementById('bestDisplay');
-const livesDisp   = document.getElementById('lives');
-const hungerBar   = document.getElementById('hungerBar');
-const bubble      = document.getElementById('bubble');
-const purrBar     = document.getElementById('purrBar');
-const purrLabel   = document.getElementById('purrLabel');
-const flashOv     = document.getElementById('flashOverlay');
-const powerupHud  = document.getElementById('powerupHud');
-const toastEl     = document.getElementById('toastEl');
-const pupilL      = document.getElementById('pupilL');
-const pupilR      = document.getElementById('pupilR');
+/**
+ * Power-up Definitions
+ */
+const POWERUPS = {
+  slowTime: {
+    id: 'slowTime',
+    icon: '⏳',
+    label: 'Slow Time',
+    dur: 4500,
+    color: '#29b6f6',
+    desc: 'Slows falling speed by 50%',
+  },
+  magnet: {
+    id: 'magnet',
+    icon: '🧲',
+    label: 'Citrus Magnet',
+    dur: 3800,
+    color: '#ab47bc',
+    desc: 'Pulls nearby citrus right into the kitten!',
+  },
+  shield: {
+    id: 'shield',
+    icon: '🛡️',
+    label: 'Bubble Shield',
+    dur: null, // Consumed on next miss or hazard
+    color: '#00bfa5',
+    desc: 'Blocks 1 missed fruit or sour lemon!',
+  },
+  frenzy: {
+    id: 'frenzy',
+    icon: '🌈',
+    label: '2x Citrus Rush',
+    dur: 5000,
+    color: '#ff6f00',
+    desc: 'Double points & rapid fruit spawns!',
+  },
+};
 
-let best = 0;
-try{ best = parseInt(localStorage.getItem('citrus_best')||'0')||0; }catch(e){}  // fix #9
-bestDisp.textContent = best;
-document.getElementById('startBest').textContent = best;
+/**
+ * Fruit / Item Types & Probabilities
+ */
+const FRUIT_TYPES = {
+  normal: {
+    id: 'normal',
+    emoji: '🍊',
+    label: 'Valencia Orange',
+    points: 10,
+    hungerMult: 1.0, // Multiplies level's scaled hungerRefill
+    speedMult: 1.0,
+    radius: 30,
+    juiceColor: '#ff9800',
+  },
+  golden: {
+    id: 'golden',
+    emoji: '🍊',
+    badge: '✨',
+    label: 'Golden Mandarin',
+    points: 30,
+    hungerMult: 1.15,
+    speedMult: 1.22,
+    radius: 30,
+    juiceColor: '#ffd700',
+  },
+  giant: {
+    id: 'giant',
+    emoji: '🍊',
+    badge: '👑',
+    label: 'Giant Pomelo',
+    points: 20,
+    hungerMult: 1.65,
+    speedMult: 0.68,
+    radius: 42,
+    juiceColor: '#ff7043',
+  },
+  tangerine: {
+    id: 'tangerine',
+    emoji: '🍑',
+    badge: '⚡',
+    label: 'Zesty Tangerine',
+    points: 15,
+    hungerMult: 0.9,
+    speedMult: 1.12,
+    comboBoost: 2,
+    radius: 28,
+    juiceColor: '#ffab40',
+  },
+  lemon: {
+    id: 'lemon',
+    emoji: '🍋',
+    badge: '☠️',
+    label: 'Sour Lemon',
+    points: 0,
+    hungerMult: 0,
+    speedMult: 0.88,
+    isHazard: true,
+    radius: 28,
+    juiceColor: '#cddc39',
+  },
+  powerup: {
+    id: 'powerup',
+    emoji: '🎁',
+    label: 'Power-Up Bubble',
+    points: 5,
+    hungerMult: 0.25,
+    speedMult: 0.65,
+    radius: 32,
+    juiceColor: '#4fc3f7',
+  },
+};
 
-// ═══════════════════════════════════════════════════════
-//  LEADERBOARD / ACHIEVEMENTS / SESSION STATS
-// ═══════════════════════════════════════════════════════
-function getLeaderboard(){
-  try{ return JSON.parse(localStorage.getItem('citrus_lb')||'[]'); }
-  catch(e){ return []; }
-}
-function saveLeaderboard(lb){ try{ localStorage.setItem('citrus_lb', JSON.stringify(lb)); }catch(e){} }
+/**
+ * Selects a fruit type based on current level, game mode, and active Fever state.
+ */
+function pickFruitType(levelIdx = 0, mode = 'classic', feverActive = false, rng = Math.random) {
+  const r = rng();
 
-function addLeaderboardEntry(entry){
-  if(entry.score <= 0) return getLeaderboard();
-  const lb = getLeaderboard();
-  lb.push(entry);
-  lb.sort((a,b)=>b.score-a.score);
-  lb.splice(10);
-  saveLeaderboard(lb);
-  return lb;
-}
-
-function renderLeaderboard(lb, container){
-  if(!lb.length){ container.innerHTML=''; return; }
-  let html = '<div class="leaderboard"><h3>🏆 Top 10</h3>';
-  lb.forEach((e,i)=>{
-    const acc = typeof e.accuracy==='number' ? e.accuracy+'%' : '?';
-    const date = e.date ? new Date(e.date).toLocaleDateString() : '';
-    html += `<div class="lb-row">
-      <span class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1+'.'}</span>
-      <span class="lb-score">${e.score}</span>
-      <span class="lb-detail">Lv${e.level} · ${acc} · ${date}</span>
-    </div>`;
-  });
-  html += '</div>';
-  container.innerHTML = html;
-}
-
-// ── Achievements ──
-const ACHIEVEMENT_DEFS = [
-  { id:'first_catch',    label:'First Bite',       icon:'🍊', desc:'Catch your first orange' },
-  { id:'combo_x5',       label:'Combo King',        icon:'🔥', desc:'Get a x5 combo' },
-  { id:'combo_x8',       label:'Combo Legend',      icon:'💥', desc:'Get a x8 combo' },
-  { id:'level_5',        label:'Getting Good',      icon:'⬆️', desc:'Reach level 5' },
-  { id:'level_10',       label:'Citrus Master',     icon:'🏆', desc:'Reach level 10' },
-  { id:'catches_50',     label:'Hungry Kitten',     icon:'😸', desc:'Catch 50 oranges total' },
-  { id:'catches_100',    label:'Orange Obsessed',   icon:'🧡', desc:'Catch 100 oranges total' },
-  { id:'perfect_level',  label:'Perfect Round',     icon:'✨', desc:'Complete a level with 0 misses' },
-  { id:'golden_catch',   label:'Golden Touch',      icon:'💛', desc:'Catch a golden orange' },
-  { id:'powerup_used',   label:'Power Up!',         icon:'⚡', desc:'Use your first power-up' },
-  { id:'shield_used',    label:'Untouchable',       icon:'🛡️', desc:'Block a miss with a shield' },
-  { id:'score_500',      label:'High Scorer',       icon:'🎯', desc:'Score 500+ points in one game' },
-];
-
-function getUnlockedAchievements(){
-  try{ return JSON.parse(localStorage.getItem('citrus_ach')||'[]'); }
-  catch(e){ return []; }
-}
-function saveAchievements(arr){ try{ localStorage.setItem('citrus_ach', JSON.stringify(arr)); }catch(e){} }
-
-let sessionUnlocks = []; // achievements unlocked this game
-function checkAchievement(id){
-  const unlocked = getUnlockedAchievements();
-  if(unlocked.includes(id)) return;
-  unlocked.push(id);
-  saveAchievements(unlocked);
-  sessionUnlocks.push(id);
-  const def = ACHIEVEMENT_DEFS.find(d=>d.id===id);
-  if(def) showToast(`${def.icon} Achievement: ${def.label}!`);
-}
-
-function renderAchievements(container){
-  const unlocked = getUnlockedAchievements();
-  let html = '<div class="achievements-wrap"><h3>🎖️ Achievements</h3><div class="ach-grid">';
-  ACHIEVEMENT_DEFS.forEach(d=>{
-    const done = unlocked.includes(d.id);
-    html += `<div class="ach-badge ${done?'unlocked':'locked'}" title="${d.desc}">${d.icon} ${d.label}</div>`;
-  });
-  html += '</div></div>';
-  container.innerHTML = html;
-}
-
-// ── Session Stats ──
-function getSessionStats(){
-  try{ return JSON.parse(localStorage.getItem('citrus_session')||'{}'); }
-  catch(e){ return {}; }
-}
-function saveSessionStats(s){ try{ localStorage.setItem('citrus_session', JSON.stringify(s)); }catch(e){} }
-
-function updateSessionStats(gameResult){
-  const s = getSessionStats();
-  s.gamesPlayed = (s.gamesPlayed||0) + 1;
-  s.totalCaught  = (s.totalCaught||0) + gameResult.caught;
-  s.bestCombo    = Math.max(s.bestCombo||0, gameResult.bestCombo);
-  s.bestAccuracy = Math.max(s.bestAccuracy||0, gameResult.accuracy);
-  saveSessionStats(s);
-}
-
-function renderSessionStats(){
-  const s = getSessionStats();
-  const el = document.getElementById('startSessionStats');
-  if(!s.gamesPlayed){ el.textContent=''; return; }
-  el.textContent = `Games: ${s.gamesPlayed} · Total caught: ${s.totalCaught||0} · Best combo: ${s.bestCombo||0} · Best accuracy: ${s.bestAccuracy||0}%`;
-}
-
-// ── Toast ──
-let toastTimer=null;
-function showToast(msg, dur=2800){
-  toastEl.textContent=msg;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>toastEl.classList.remove('show'), dur);
-}
-
-// ═══════════════════════════════════════════════════════
-//  AUDIO ENGINE
-// ═══════════════════════════════════════════════════════
-let audioCtx=null, masterGain=null;
-let musicGain=null, musicNodes=[], musicOn=true;
-let musicScheduled=false, musicStartTime=0, musicStep=0, musicTimeout=null;
-const MAX_VOL=0.22;
-let audioInited=false; // Fix Q: flag to skip redundant full init
-
-function initAudio(){
-  if(audioInited){
-    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
-    return;
-  }
-  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  const ctx=audioCtx;
-  masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(0, ctx.currentTime);
-  masterGain.connect(ctx.destination);
-  const lpf = ctx.createBiquadFilter();
-  lpf.type='lowpass'; lpf.frequency.value=320; lpf.Q.value=1.2;
-  lpf.connect(masterGain);
-  const trem = ctx.createGain();
-  trem.gain.setValueAtTime(1, ctx.currentTime);
-  trem.connect(lpf);
-  const lfo = ctx.createOscillator();
-  lfo.type='sine'; lfo.frequency.value=26;
-  const lfoD = ctx.createGain(); lfoD.gain.value=0.55;
-  lfo.connect(lfoD); lfoD.connect(trem.gain); lfo.start();
-  [[30,.6],[60,.28],[90,.12]].forEach(([freq,w],i)=>{
-    const o=ctx.createOscillator(); o.type='sawtooth';
-    o.frequency.value=freq; o.detune.value=i*7;
-    const g=ctx.createGain(); g.gain.value=w;
-    o.connect(g); g.connect(trem); o.start();
-  });
-
-  // background music gain
-  musicGain = ctx.createGain();
-  musicGain.gain.value = musicOn ? 0.06 : 0;
-  musicGain.connect(ctx.destination);
-  audioInited = true; // Fix Q: mark as fully initialized
-  scheduleMusicLoop();
-}
-
-// Pentatonic arpeggio background loop (~100 bpm)
-const PENTA_NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C4 pentatonic
-const BEAT_DUR = 60/100; // ~0.6s per beat
-
-function scheduleMusicLoop(){
-  if(gs!=='playing') return;
-  if(!audioCtx || !musicGain) return;
-  const ctx = audioCtx;
-  const now = ctx.currentTime;
-  // Fix O: tempo scales with level — 3% faster per level, capped at 60% of original
-  const beatDur = BEAT_DUR * Math.max(0.6, 1 - levelIdx * 0.03);
-  if(!musicScheduled){
-    musicStartTime = now;
-    musicScheduled = true;
-    musicStep = 0;
-  }
-  // schedule 16 beats ahead
-  const AHEAD = 16;
-  for(let i=0;i<AHEAD;i++){
-    const t = musicStartTime + (musicStep + i) * beatDur;
-    if(t < now - 0.01) continue;
-    const freq = PENTA_NOTES[(musicStep + i) % PENTA_NOTES.length];
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(0.5, t + 0.05);
-    env.gain.exponentialRampToValueAtTime(0.001, t + beatDur * 0.8);
-    osc.connect(env); env.connect(musicGain);
-    osc.start(t); osc.stop(t + beatDur * 0.8);
-    osc.onended = ()=>{ osc.disconnect(); env.disconnect(); };  // fix #8
-  }
-  musicStep += AHEAD;
-  musicTimeout = setTimeout(scheduleMusicLoop, AHEAD * beatDur * 800);
-}
-
-document.getElementById('musicToggle').addEventListener('click', ()=>{
-  musicOn = !musicOn;
-  document.getElementById('musicToggle').textContent = musicOn ? '🔊' : '🔇';
-  if(musicGain) musicGain.gain.setTargetAtTime(musicOn ? 0.06 : 0, audioCtx.currentTime, 0.3);
-});
-
-// fix #21: SFX/Speech toggle
-document.getElementById('sfxToggle').addEventListener('click', ()=>{
-  sfxOn = !sfxOn;
-  document.getElementById('sfxToggle').textContent = sfxOn ? '🗣️' : '🔕';
-  if(!sfxOn && 'speechSynthesis' in window) speechSynthesis.cancel();
-});
-
-function setPurrVol(pct){
-  if(!masterGain) return;
-  masterGain.gain.setTargetAtTime(Math.sqrt(pct/100)*MAX_VOL, audioCtx.currentTime, 0.6);
-}
-
-function playMeow(){
-  if(!audioCtx) return;
-  const ctx=audioCtx, now=ctx.currentTime;
-  const root=480+Math.random()*160;
-  const osc=ctx.createOscillator(); osc.type='triangle';
-  osc.frequency.setValueAtTime(root*.75,now);
-  osc.frequency.linearRampToValueAtTime(root*1.35,now+.12);
-  osc.frequency.linearRampToValueAtTime(root*.60,now+.38);
-  osc.frequency.linearRampToValueAtTime(root*.45,now+.55);
-  const filt=ctx.createBiquadFilter(); filt.type='bandpass';
-  filt.frequency.setValueAtTime(900,now);
-  filt.frequency.linearRampToValueAtTime(1400,now+.12);
-  filt.frequency.linearRampToValueAtTime(700,now+.50);
-  filt.Q.value=3.5;
-  const env=ctx.createGain();
-  env.gain.setValueAtTime(0,now);
-  env.gain.linearRampToValueAtTime(0.38,now+.04);
-  env.gain.setValueAtTime(0.38,now+.06);
-  env.gain.exponentialRampToValueAtTime(0.001,now+.60);
-  osc.connect(filt); filt.connect(env); env.connect(ctx.destination);
-  osc.start(now); osc.stop(now+.65);
-  osc.onended = () => { osc.disconnect(); filt.disconnect(); env.disconnect(); };
-}
-
-function playCatchPop(){
-  if(!audioCtx) return;
-  const ctx=audioCtx, now=ctx.currentTime;
-  const osc=ctx.createOscillator(); osc.type='sine';
-  osc.frequency.setValueAtTime(880, now);
-  osc.frequency.linearRampToValueAtTime(440, now+0.08);
-  const env=ctx.createGain();
-  env.gain.setValueAtTime(0.18, now);
-  env.gain.exponentialRampToValueAtTime(0.001, now+0.10);
-  osc.connect(env); env.connect(ctx.destination);
-  osc.start(now); osc.stop(now+0.12);
-  osc.onended = () => { osc.disconnect(); env.disconnect(); };
-}
-
-function playLevelUpWhoosh(){
-  if(!audioCtx) return;
-  const ctx=audioCtx, now=ctx.currentTime;
-  const bufLen = ctx.sampleRate * 0.4;
-  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for(let i=0;i<bufLen;i++) data[i]=(Math.random()*2-1)*Math.pow(i/bufLen, 0.5);
-  const src = ctx.createBufferSource(); src.buffer=buf;
-  const filt = ctx.createBiquadFilter(); filt.type='bandpass';
-  filt.frequency.setValueAtTime(400, now);
-  filt.frequency.linearRampToValueAtTime(2400, now+0.4);
-  filt.Q.value=1.5;
-  const env = ctx.createGain();
-  env.gain.setValueAtTime(0.3, now);
-  env.gain.exponentialRampToValueAtTime(0.001, now+0.4);
-  src.connect(filt); filt.connect(env); env.connect(ctx.destination);
-  src.start(now); src.stop(now+0.45);
-  src.onended = () => { src.disconnect(); filt.disconnect(); env.disconnect(); };
-}
-
-function playHiss(){
-  if(!audioCtx) return;
-  const ctx=audioCtx, now=ctx.currentTime;
-  const osc=ctx.createOscillator(); osc.type='sawtooth';
-  osc.frequency.setValueAtTime(800,now);
-  osc.frequency.linearRampToValueAtTime(220,now+.5);
-  const g=ctx.createGain();
-  g.gain.setValueAtTime(0.28,now);
-  g.gain.exponentialRampToValueAtTime(0.001,now+.55);
-  osc.connect(g); g.connect(ctx.destination);
-  osc.start(now); osc.stop(now+.6);
-  osc.onended = () => { osc.disconnect(); g.disconnect(); };
-}
-
-// ── Speech ──
-let speechBusy=false, speechBiteCount=0;
-
-if('speechSynthesis' in window){
-  speechSynthesis.addEventListener('voiceschanged', ()=>{ /* voices now ready */ });
-}
-
-function speakIt(text, pitchV, rateV){
-  if(!('speechSynthesis' in window)) return;
-  const voices=speechSynthesis.getVoices();
-  const v=voices.find(v=>/male|deep|uk|daniel|alex/i.test(v.name))||voices[0];
-  const u=new SpeechSynthesisUtterance(text);
-  u.pitch=pitchV; u.rate=rateV; u.volume=0.9;
-  if(v) u.voice=v;
-  speechSynthesis.speak(u);
-  return u;
-}
-
-function playThankYouAndDaddy(n){
-  if(speechBusy) return; speechBusy=true;
-  speechSynthesis.cancel();
-  const pitch=Math.max(0, 1.0-(n-1)*0.045);
-  const rate =Math.max(0.35,0.85-(n-1)*0.025);
-  const tp=['thank you','thank yoooou','thaaaaank you','thank you for the orange'];
-  const dp=['yes daddy','yes. daddy.','yeeees daddy','yes daddy. more orange.'];
-  const u1=speakIt(tp[Math.floor(Math.random()*tp.length)],pitch,rate);
-  const u2=speakIt(dp[Math.floor(Math.random()*dp.length)],Math.max(0,pitch*.7),Math.max(0.3,rate*.85));
-  // safety timeout: reset speechBusy after 5s in case synthesis drops silently
-  const safetyTimer = setTimeout(()=>{ speechBusy=false; }, 5000);
-  const reset = ()=>{ speechBusy=false; clearTimeout(safetyTimer); };
-  if(u2){ u2.onend=u2.onerror=reset; }
-  else if(u1){ u1.onend=u1.onerror=reset; }
-  else { reset(); }
-}
-
-function callOutAsshole(){
-  speechSynthesis.cancel(); speechBusy=false;
-  const lines=['you are an asshole','slow down, you asshole',
-    'asshole. i said savour it.','you absolute asshole. slow. down.'];
-  speakIt(lines[Math.floor(Math.random()*lines.length)], 0.1, 0.7);
-  playHiss();
-}
-
-// ═══════════════════════════════════════════════════════
-//  KITTEN FACE
-// ═══════════════════════════════════════════════════════
-function setFace(mood){
-  // fix #5: show normal eyes for both normal and sad
-  document.getElementById('eyesNormal').style.display = (mood==='normal'||mood==='sad')?'':'none';
-  document.getElementById('eyesHappy').style.display  = mood==='happy'?'':'none';
-  document.getElementById('eyesScared').style.display = mood==='scared'?'':'none';
-  document.getElementById('mouthNormal').style.display= (mood==='normal'||mood==='scared')?'':'none';
-  document.getElementById('mouthHappy').style.display = mood==='happy'?'':'none';
-  document.getElementById('mouthSad').style.display   = mood==='sad'?'':'none';
-  document.getElementById('tongue').style.display     = mood==='happy'?'':'none';
-}
-
-function flashFace(mood, ms=600){
-  setFace(mood);
-  clearTimeout(eyeTimer);
-  // fix #11: restore to sad if hunger is critically low, not always normal
-  eyeTimer=setTimeout(()=>{ eyeTimer=null; setFace(hunger < 25 ? 'sad' : 'normal'); }, ms);
-}
-
-// Eye tracking: move pupils toward nearest falling orange
-// fix #16: use cached kitCX/kitCY instead of getBoundingClientRect every frame
-function updateEyeTracking(){
-  if(!eyeTimer && oranges.length>0){
-    let nearest=null, bestDist=Infinity;
-    for(const o of oranges){
-      const dist = Math.hypot(o.x - kitCX, o.y - kitCY);
-      if(o.y > -20 && dist < bestDist){ bestDist=dist; nearest=o; }
-    }
-    if(nearest){
-      const dx = Math.max(-4, Math.min(4, (nearest.x - kitCX) / 60));
-      const dy = Math.max(-3, Math.min(3, (nearest.y - kitCY) / 80));
-      pupilL.setAttribute('cx', 213 + dx);
-      pupilL.setAttribute('cy', 158 + dy);
-      pupilR.setAttribute('cx', 273 + dx);
-      pupilR.setAttribute('cy', 158 + dy);
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  BUBBLE
-// ═══════════════════════════════════════════════════════
-const catchMsgs=[
-  '😋 Nom nom!','🍊 So juicy!','😸 Purrfect!','🤤 Delicious!',
-  '😻 More!!','🍋 Zesty!','😺 Yummy!','✨ *slurp*',
-  '🧬 Vitamin C: SECURED.','📐 Perfect acidity.','🍊 Citrus life!',
-  '💛 Sweet & sour!','🎯 Right in the face.','🧪 Synthesised into happiness.',
-  '🎓 Nutritionally optimal.','🌡️ Core temp: rising.',
-];
-const missMsgs=[
-  '😡 YOU DROPPED IT','💢 THAT WAS MINE','😤 ARE YOU SERIOUS',
-  '🤬 PICK IT UP!!','😠 INCOMPETENT','💔 My orange...gone.',
-];
-
-function showBubble(msg){
-  bubble.textContent=msg;
-  bubble.classList.add('show');
-  clearTimeout(bubbleTimer);
-  bubbleTimer=setTimeout(()=>bubble.classList.remove('show'),1800);
-}
-
-// ═══════════════════════════════════════════════════════
-//  HUD UPDATES
-// ═══════════════════════════════════════════════════════
-const hungerVignette = document.getElementById('hungerVignette');
-
-function updateHUD(){
-  // animated score roll-up
-  if(score !== displayedScore){
-    clearTimeout(scoreRollTimer);
-    const diff = score - displayedScore;
-    const step = Math.ceil(Math.abs(diff) / 8);
-    function rollStep(){
-      if(displayedScore === score) return;
-      const d = score - displayedScore;
-      displayedScore += Math.sign(d) * Math.min(step, Math.abs(d));
-      scoreDisp.textContent = displayedScore;
-      if(displayedScore !== score) scoreRollTimer = setTimeout(rollStep, 30);
-    }
-    rollStep();
+  if (feverActive) {
+    // During Purr Fever, no hazards spawn and golden/tangerine rates soar!
+    if (r < 0.06) return 'powerup';
+    if (r < 0.32) return 'golden';
+    if (r < 0.48) return 'tangerine';
+    if (r < 0.60) return 'giant';
+    return 'normal';
   }
 
-  levelDisp.textContent=levelIdx+1;
+  const lemonRate = mode === 'zen' ? 0 : 0.06 + Math.min(levelIdx * 0.01, 0.10); // 6% -> 16% by Lv10
+  const powerupRate = mode === 'zen' ? 0.03 : 0.045;
+  const goldenRate = 0.075;
+  const giantRate = 0.055;
+  const tangerineRate = levelIdx >= 1 ? 0.06 : 0.03;
 
-  // fix #12: use prevLives to avoid unnecessary DOM writes
-  if(lives !== prevLives){
-    const newLivesHTML = '❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives));
-    livesDisp.innerHTML = newLivesHTML;
-    prevLives = lives;
-  }
-
-  hungerBar.style.width=hunger+'%';
-  const h=hunger;
-  hungerBar.style.background = h>60 ? '#8bc34a' : h>30 ? '#ff9800' : '#f44336';
-
-  // fix #22: low hunger vignette
-  if(h < 20) hungerVignette.classList.add('active');
-  else        hungerVignette.classList.remove('active');
-}
-
-function updatePurr(){
-  const pct=Math.min(100, hunger);
-  purrBar.style.width=pct+'%';
-  const states=[
-    [80,'😻 Loud purring!!!'],[60,'😸 Full purr!'],[40,'😊 Purring...'],
-    [20,'😐 Faint rumble...'],[0,'😿 Not purring...']
-  ];
-  for(const [t,l] of states){ if(pct>=t){purrLabel.textContent=l;break;} }
-  if(audioCtx) setPurrVol(pct);
-}
-
-function flash(color='rgba(255,0,0,0.3)'){
-  flashOv.style.background=color;
-  flashOv.style.opacity='1';
-  setTimeout(()=>{ flashOv.style.opacity='0'; },120);
-}
-
-function screenShake(){
-  gameArea.classList.remove('shaking');
-  void gameArea.offsetWidth;
-  gameArea.classList.add('shaking');
-  gameArea.addEventListener('animationend',()=>gameArea.classList.remove('shaking'),{once:true});
-}
-
-function spawnScorePop(x,y,text){
-  const el=document.createElement('div');
-  el.className='score-pop';
-  el.textContent=text;
-  el.style.left=x+'px'; el.style.top=y+'px';
-  document.body.appendChild(el);
-  el.addEventListener('animationend',()=>el.remove());
-  setTimeout(()=>el.remove(), 2000);   // fix #17: safety fallback
-}
-
-function spawnCombo(){
-  if(combo<2) return;
-  const el=document.createElement('div');
-  el.className='combo-flash';
-  el.textContent=`x${Math.min(combo, 8)} COMBO! 🔥${combo > 8 ? ` (${combo} streak)` : ''}`;
-  document.body.appendChild(el);
-  el.addEventListener('animationend',()=>el.remove());
-  setTimeout(()=>el.remove(), 2000);   // fix #17: safety fallback
-}
-
-function spawnCatchParticles(x, y){
-  const emojis=['🍊','💦','✨','🌿','💛'];
-  const count = 6 + Math.floor(Math.random()*3);
-  for(let i=0;i<count;i++){
-    const el=document.createElement('div');
-    el.className='catch-particle';
-    el.textContent=emojis[i%emojis.length];
-    const angle=(i/count)*Math.PI*2;
-    const dist=50+Math.random()*60;
-    el.style.setProperty('--tx', `${Math.cos(angle)*dist}px`);
-    el.style.setProperty('--ty', `${Math.sin(angle)*dist-30}px`);
-    el.style.left=x+'px'; el.style.top=y+'px';
-    document.body.appendChild(el);
-    el.addEventListener('animationend',()=>el.remove());
-    setTimeout(()=>el.remove(), 2000); // fix #17: safety fallback
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  POWER-UPS
-// ═══════════════════════════════════════════════════════
-function activatePowerup(type){
-  checkAchievement('powerup_used');
-  showToast(`${POWERUPS[type].icon} ${POWERUPS[type].label} activated!`);
-  if(type==='shield'){
-    shieldActive=true;
-    activePowerups.shield={ active:true };
-  } else {
-    activePowerups[type]={ endTime: Date.now() + POWERUPS[type].dur };
-  }
-  updatePowerupHud();
-}
-
-function updatePowerupHud(){
-  const now = Date.now();
-  // clean up expired
-  for(const k of Object.keys(activePowerups)){
-    if(k!=='shield' && activePowerups[k].endTime < now) delete activePowerups[k];
-  }
-  let html='';
-  for(const [k,v] of Object.entries(activePowerups)){
-    const def = POWERUPS[k];
-    if(k==='shield'){
-      html += `<div class="powerup-active">${def.icon} Shield</div>`;
-    } else {
-      const remaining = Math.max(0, v.endTime - now);
-      const pct = (remaining / def.dur) * 100;
-      html += `<div class="powerup-active">${def.icon} ${def.label}
-        <div class="powerup-bar-wrap"><div class="powerup-bar" style="width:${pct}%"></div></div>
-      </div>`;
-    }
-  }
-  powerupHud.innerHTML = html;
-}
-
-function isSlowTime(){ return activePowerups.slowTime && activePowerups.slowTime.endTime > Date.now(); }
-function isMagnet(){   return activePowerups.magnet   && activePowerups.magnet.endTime   > Date.now(); }
-
-// ═══════════════════════════════════════════════════════
-//  ORANGE SPAWNING
-// ═══════════════════════════════════════════════════════
-let oid=0;
-let maxComboThisGame=0;
-let missesThisLevel=0;
-
-// Fruit types: normal, golden, lemon, giant, powerup_slowTime, powerup_magnet, powerup_shield
-function pickFruitType(){
-  const r = Math.random();
-  const lemonRate = 0.06 + Math.min(levelIdx * 0.01, 0.10); // fix #15: 6% → 16% by level 10
-  if(r < 0.04)               return 'powerup'; // 4% power-up
-  if(r < 0.11)               return 'golden';  // 7%
-  if(r < 0.11 + lemonRate)   return 'lemon';   // scaled by level
-  if(r < 0.11 + lemonRate + 0.05) return 'giant'; // 5%
+  let cursor = powerupRate;
+  if (r < cursor) return 'powerup';
+  cursor += goldenRate;
+  if (r < cursor) return 'golden';
+  cursor += lemonRate;
+  if (r < cursor) return 'lemon';
+  cursor += giantRate;
+  if (r < cursor) return 'giant';
+  cursor += tangerineRate;
+  if (r < cursor) return 'tangerine';
   return 'normal';
 }
 
-function spawnOrange(){
-  if(gs!=='playing') return;
-  const cfg=getLevelCfg(levelIdx);
-  if(oranges.length>=cfg.maxOranges) return;
+/**
+ * Achievement Definitions (16 total — preserves all 12 original IDs + 4 new ones)
+ */
+const ACHIEVEMENT_DEFS = [
+  { id: 'first_catch',   label: 'First Bite',      icon: '🍊', desc: 'Catch your first orange' },
+  { id: 'combo_x5',      label: 'Combo King',      icon: '🔥', desc: 'Reach a x5 combo multiplier' },
+  { id: 'combo_x8',      label: 'Combo Legend',    icon: '💥', desc: 'Reach the max x8 combo multiplier' },
+  { id: 'level_5',       label: 'Getting Good',    icon: '⬆️', desc: 'Reach Level 5' },
+  { id: 'level_10',      label: 'Citrus Master',   icon: '🏆', desc: 'Reach Level 10' },
+  { id: 'catches_50',    label: 'Hungry Kitten',   icon: '😸', desc: 'Catch 50 oranges total' },
+  { id: 'catches_100',   label: 'Orange Obsessed', icon: '🧡', desc: 'Catch 100 oranges total' },
+  { id: 'perfect_level', label: 'Perfect Round',   icon: '✨', desc: 'Complete a level with 0 misses' },
+  { id: 'golden_catch',  label: 'Golden Touch',    icon: '💛', desc: 'Catch a Golden Mandarin' },
+  { id: 'powerup_used',  label: 'Power Up!',       icon: '⚡', desc: 'Collect your first power-up' },
+  { id: 'shield_used',   label: 'Untouchable',     icon: '🛡️', desc: 'Block a miss or lemon with a Shield' },
+  { id: 'score_500',     label: 'High Scorer',     icon: '🎯', desc: 'Score 500+ points in one game' },
+  { id: 'score_2500',    label: 'Citrus Tycoon',   icon: '👑', desc: 'Score 2,500+ points in one game' },
+  { id: 'fever_trigger', label: 'Purr Overdrive',  icon: '🌈', desc: 'Activate Purr Fever mode' },
+  { id: 'slice_multi',   label: 'Ninja Paws',      icon: '⚔️', desc: 'Slice 3+ fruits in a single swipe' },
+  { id: 'mouth_catch',   label: 'Direct Delivery', icon: '😻', desc: 'Catch 10 fruits directly with the kitten' },
+];
 
-  const fruitType = pickFruitType();
+/**
+ * Unlockable Kitten Skins
+ */
+const KITTEN_SKINS = [
+  {
+    id: 'clementine',
+    name: 'Clementine Tabby',
+    icon: '🐱',
+    unlockText: 'Starter Kitten',
+    isUnlocked: () => true,
+    colors: {
+      fur: '#f4a94e',
+      stripes: '#e8923a',
+      belly: '#fde8c5',
+      earInner: '#f7c0c0',
+      nose: '#e05a8a',
+      eyes: '#3a2000',
+    },
+    accessory: 'none',
+  },
+  {
+    id: 'tuxedo',
+    name: 'Tuxedo Zest',
+    icon: '🐈‍⬛',
+    unlockText: 'Unlock: Catch 50 oranges total',
+    isUnlocked: (ach, stats) => ach.includes('catches_50') || (stats.totalCaught || 0) >= 50,
+    colors: {
+      fur: '#2d3142',
+      stripes: '#1b1e2b',
+      belly: '#ffffff',
+      earInner: '#f4a2b8',
+      nose: '#ff7597',
+      eyes: '#1b4332',
+    },
+    accessory: 'bowtie',
+  },
+  {
+    id: 'calico',
+    name: 'Yuzu Blossom',
+    icon: '🌸',
+    unlockText: 'Unlock: Reach a x8 Combo',
+    isUnlocked: (ach) => ach.includes('combo_x8'),
+    colors: {
+      fur: '#fff3e0',
+      stripes: '#ef6c00',
+      belly: '#ffffff',
+      earInner: '#f8bbd0',
+      nose: '#ec407a',
+      eyes: '#4e342e',
+    },
+    accessory: 'flower',
+  },
+  {
+    id: 'cyber',
+    name: 'Cyber Citrus',
+    icon: '🤖',
+    unlockText: 'Unlock: Reach Level 5',
+    isUnlocked: (ach) => ach.includes('level_5'),
+    colors: {
+      fur: '#ff9100',
+      stripes: '#00e5ff',
+      belly: '#fff8e1',
+      earInner: '#00e5ff',
+      nose: '#ff007f',
+      eyes: '#004d40',
+    },
+    accessory: 'visor',
+  },
+  {
+    id: 'royal',
+    name: 'Emperor Mandarin',
+    icon: '👑',
+    unlockText: 'Unlock: Reach Level 10 or Score 2,500+',
+    isUnlocked: (ach) => ach.includes('level_10') || ach.includes('score_2500'),
+    colors: {
+      fur: '#ffb300',
+      stripes: '#ff6f00',
+      belly: '#fffde7',
+      earInner: '#ffd54f',
+      nose: '#d81b60',
+      eyes: '#3e2723',
+    },
+    accessory: 'crown',
+  },
+];
 
-  const el=document.createElement('div');
-  el.className='orange-fruit';
-  el.setAttribute('aria-hidden','true');
+/**
+ * Bubble Messages
+ */
+const CATCH_MESSAGES = [
+  '😋 Nom nom!', '🍊 So juicy!', '😸 Purrfect!', '🤤 Delicious!',
+  '😻 More!!', '🍋 Zesty!', '😺 Yummy!', '✨ *slurp*',
+  '🧬 Vitamin C: SECURED.', '📐 Perfect acidity.', '🍊 Citrus life!',
+  '💛 Sweet & sour!', '🎯 Right in the face.', '🧪 Synthesised into happiness.',
+  '🎓 Nutritionally optimal.', '🌡️ Core temp: rising.',
+];
 
-  let baseSpeed = cfg.speed+(Math.random()-.5)*30;
-  let emoji, points, hungerBonus, speedMult=1;
-  let powerupType=null;
+const MISS_MESSAGES_UNHINGED = [
+  '😡 YOU DROPPED IT', '💢 THAT WAS MINE', '😤 ARE YOU SERIOUS',
+  '🤬 PICK IT UP!!', '😠 INCOMPETENT', '💔 My orange...gone.',
+];
 
-  if(fruitType==='powerup'){
-    const ptypes=['slowTime','magnet','shield'];
-    powerupType = ptypes[Math.floor(Math.random()*ptypes.length)];
-    emoji = POWERUPS[powerupType].icon;
-    points = 0;
-    hungerBonus = 0;
-    speedMult = 0.6;
-  } else if(fruitType==='golden'){
-    emoji='✨'; points=30; hungerBonus=14; speedMult=1.25;
-  } else if(fruitType==='lemon'){
-    emoji='🍋'; points=0; hungerBonus=0; speedMult=0.85;
-  } else if(fruitType==='giant'){
-    emoji='🍊'; points=20; hungerBonus=28; speedMult=0.65;
-    el.classList.add('giant');
-  } else {
-    emoji='🍊'; points=10; hungerBonus=18;
+const MISS_MESSAGES_WHOLESOME = [
+  '😿 Oh no, my orange!', '💔 It splatted!', '🥺 So hungry...',
+  '🙀 Too fast!', '🍊 Come baaack!', '😿 Missed one!',
+];
+
+// ── Module: storage.js ──
+// ═══════════════════════════════════════════════════════════════════════════
+//  CITRUS KITTEN (CANTRONN) — PERSISTENCE & STORAGE LAYER
+// ═══════════════════════════════════════════════════════════════════════════
+
+const KEYS = {
+  BEST: 'citrus_best',
+  LEADERBOARD: 'citrus_lb',
+  ACHIEVEMENTS: 'citrus_ach',
+  SESSION: 'citrus_session',
+  SETTINGS: 'citrus_settings',
+  SKIN: 'citrus_skin',
+};
+
+function safeGet(storage, key, fallback) {
+  try {
+    const raw = storage.getItem(key);
+    if (raw === null || raw === undefined) return fallback;
+    return raw;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function safeSet(storage, key, val) {
+  try {
+    storage.setItem(key, val);
+  } catch (e) {
+    // Ignore quota or private-browsing storage errors
+  }
+}
+
+function getBestScore(storage = globalThis.localStorage) {
+  const raw = safeGet(storage, KEYS.BEST, '0');
+  return Math.max(0, parseInt(raw, 10) || 0);
+}
+
+function setBestScore(score, storage = globalThis.localStorage) {
+  const clean = Math.max(0, Math.floor(Number(score) || 0));
+  safeSet(storage, KEYS.BEST, String(clean));
+  return clean;
+}
+
+function getLeaderboard(storage = globalThis.localStorage) {
+  try {
+    const raw = safeGet(storage, KEYS.LEADERBOARD, '[]');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLeaderboard(lb, storage = globalThis.localStorage) {
+  safeSet(storage, KEYS.LEADERBOARD, JSON.stringify(lb));
+}
+
+function addLeaderboardEntry(entry, storage = globalThis.localStorage) {
+  if (!entry || entry.score <= 0) return getLeaderboard(storage);
+  const lb = getLeaderboard(storage);
+  lb.push({
+    score: Math.floor(entry.score),
+    level: entry.level || 1,
+    accuracy: typeof entry.accuracy === 'number' ? entry.accuracy : 0,
+    mode: entry.mode || 'classic',
+    date: entry.date || Date.now(),
+  });
+  lb.sort((a, b) => b.score - a.score);
+  lb.splice(10);
+  saveLeaderboard(lb, storage);
+  return lb;
+}
+
+function getUnlockedAchievements(storage = globalThis.localStorage) {
+  try {
+    const raw = safeGet(storage, KEYS.ACHIEVEMENTS, '[]');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveAchievements(arr, storage = globalThis.localStorage) {
+  safeSet(storage, KEYS.ACHIEVEMENTS, JSON.stringify(arr));
+}
+
+function getSessionStats(storage = globalThis.localStorage) {
+  try {
+    const raw = safeGet(storage, KEYS.SESSION, '{}');
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveSessionStats(stats, storage = globalThis.localStorage) {
+  safeSet(storage, KEYS.SESSION, JSON.stringify(stats));
+}
+
+function updateSessionStats(gameResult, storage = globalThis.localStorage) {
+  const s = getSessionStats(storage);
+  s.gamesPlayed = (s.gamesPlayed || 0) + 1;
+  s.totalCaught = (s.totalCaught || 0) + (gameResult.caught || 0);
+  s.bestCombo = Math.max(s.bestCombo || 0, gameResult.bestCombo || 0);
+  s.bestAccuracy = Math.max(s.bestAccuracy || 0, gameResult.accuracy || 0);
+  s.totalScore = (s.totalScore || 0) + (gameResult.score || 0);
+  saveSessionStats(s, storage);
+  return s;
+}
+
+function getSettings(storage = globalThis.localStorage) {
+  const defaults = {
+    musicOn: true,
+    sfxOn: true,
+    voiceMode: 'unhinged', // 'unhinged' | 'wholesome' | 'off'
+  };
+  try {
+    const raw = safeGet(storage, KEYS.SETTINGS, null);
+    if (!raw) return defaults;
+    return { ...defaults, ...JSON.parse(raw) };
+  } catch (e) {
+    return defaults;
+  }
+}
+
+function saveSettings(settings, storage = globalThis.localStorage) {
+  safeSet(storage, KEYS.SETTINGS, JSON.stringify(settings));
+}
+
+function getSelectedSkin(storage = globalThis.localStorage) {
+  return safeGet(storage, KEYS.SKIN, 'clementine') || 'clementine';
+}
+
+function saveSelectedSkin(skinId, storage = globalThis.localStorage) {
+  safeSet(storage, KEYS.SKIN, skinId);
+}
+
+// ── Module: audio.js ──
+// ═══════════════════════════════════════════════════════════════════════════
+//  CITRUS KITTEN (CANTRONN) — WEB AUDIO SYNTH & SPEECH ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PENTA_NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C4 Pentatonic
+const FEVER_NOTES = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50]; // C5 Pentatonic
+const BASE_BEAT_DUR = 60 / 105; // ~0.57s per beat
+const MAX_PURR_VOL = 0.22;
+
+class SoundEngine {
+  constructor(initialSettings = {}) {
+    this.audioCtx = null;
+    this.purrGain = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.audioInited = false;
+
+    this.musicOn = initialSettings.musicOn !== false;
+    this.sfxOn = initialSettings.sfxOn !== false;
+    this.voiceMode = initialSettings.voiceMode || 'unhinged'; // 'unhinged' | 'wholesome' | 'off'
+
+    this.musicTimeout = null;
+    this.suspendTimer = null;
+    this.nextNoteTime = 0;
+    this.musicStep = 0;
+    this.isPlaying = false;
+    this.isPaused = false;
+    this.levelIdx = 0;
+    this.feverActive = false;
+
+    this.speechBusy = false;
+    this.speechSafetyTimer = null;
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.addEventListener?.('voiceschanged', () => {});
+    }
   }
 
-  el.textContent=emoji;
+  init() {
+    clearTimeout(this.suspendTimer);
+    if (this.audioInited && this.audioCtx) {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      return;
+    }
 
-  const padding=40;
-  const x=padding+Math.random()*(window.innerWidth-padding*2-40);
-  const drift=(Math.random()-0.5)*1.2;  // horizontal sine drift
-  const accel=fruitType==='giant'?0:Math.random()*0.08; // acceleration factor
+    const AudioContextClass =
+      typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+    if (!AudioContextClass) return;
 
-  const obj={
-    id:oid++, el, x, y:-50,
-    speed: baseSpeed * speedMult,
-    fruitType, points, hungerBonus, powerupType,
-    drift, accel, driftPhase: Math.random()*Math.PI*2,
-    baseX: x,
-  };
+    this.audioCtx = new AudioContextClass();
+    const ctx = this.audioCtx;
 
-  el.style.left=x+'px';
-  el.style.top='-50px';
-  el.addEventListener('pointerdown', ev=>{ ev.stopPropagation(); catchOrange(obj); }, {once: true});
+    // 1. Purr Synthesizer Bus
+    this.purrGain = ctx.createGain();
+    this.purrGain.gain.setValueAtTime(0, ctx.currentTime);
+    this.purrGain.connect(ctx.destination);
 
-  gameArea.appendChild(el);
-  oranges.push(obj);
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 320;
+    lpf.Q.value = 1.2;
+    lpf.connect(this.purrGain);
+
+    const trem = ctx.createGain();
+    trem.gain.setValueAtTime(1, ctx.currentTime);
+    trem.connect(lpf);
+
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 26;
+    const lfoD = ctx.createGain();
+    lfoD.gain.value = 0.55;
+    lfo.connect(lfoD);
+    lfoD.connect(trem.gain);
+    lfo.start();
+
+    [
+      [30, 0.6],
+      [60, 0.28],
+      [90, 0.12],
+    ].forEach(([freq, w], i) => {
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = freq;
+      o.detune.value = i * 7;
+      const g = ctx.createGain();
+      g.gain.value = w;
+      o.connect(g);
+      g.connect(trem);
+      o.start();
+    });
+
+    // 2. Background Music Bus
+    this.musicGain = ctx.createGain();
+    this.musicGain.gain.setValueAtTime(this.musicOn ? 0.06 : 0, ctx.currentTime);
+    this.musicGain.connect(ctx.destination);
+
+    // 3. SFX Bus
+    this.sfxGain = ctx.createGain();
+    this.sfxGain.gain.setValueAtTime(this.sfxOn ? 1.0 : 0, ctx.currentTime);
+    this.sfxGain.connect(ctx.destination);
+
+    this.audioInited = true;
+  }
+
+  startSession(levelIdx = 0) {
+    clearTimeout(this.suspendTimer);
+    clearTimeout(this.musicTimeout);
+    this.init();
+    this.isPlaying = true;
+    this.isPaused = false;
+    this.levelIdx = levelIdx;
+    this.feverActive = false;
+
+    if (this.audioCtx) {
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      const now = this.audioCtx.currentTime;
+      if (this.musicGain) {
+        this.musicGain.gain.cancelScheduledValues(now);
+        this.musicGain.gain.setTargetAtTime(this.musicOn ? 0.06 : 0, now, 0.15);
+      }
+      if (this.sfxGain) {
+        this.sfxGain.gain.setValueAtTime(this.sfxOn ? 1.0 : 0, now);
+      }
+      this.nextNoteTime = now + 0.05;
+      this.musicStep = 0;
+      this.scheduleMusicLoop();
+    }
+  }
+
+  pauseSession() {
+    this.isPaused = true;
+    clearTimeout(this.musicTimeout);
+    if (this.audioCtx && this.audioCtx.state === 'running') {
+      this.audioCtx.suspend().catch(() => {});
+    }
+  }
+
+  resumeSession() {
+    if (!this.isPlaying) return;
+    this.isPaused = false;
+    clearTimeout(this.suspendTimer);
+    if (this.audioCtx) {
+      this.audioCtx.resume().catch(() => {});
+      this.nextNoteTime = Math.max(this.nextNoteTime, this.audioCtx.currentTime + 0.05);
+      this.scheduleMusicLoop();
+    }
+  }
+
+  stopSession() {
+    this.isPlaying = false;
+    this.isPaused = false;
+    this.feverActive = false;
+    clearTimeout(this.musicTimeout);
+    clearTimeout(this.speechSafetyTimer);
+    this.speechBusy = false;
+    this.cancelSpeech();
+
+    if (this.audioCtx) {
+      const now = this.audioCtx.currentTime;
+      this.purrGain?.gain.setTargetAtTime(0, now, 0.08);
+      this.musicGain?.gain.setTargetAtTime(0, now, 0.08);
+      clearTimeout(this.suspendTimer);
+      this.suspendTimer = setTimeout(() => {
+        if (!this.isPlaying && this.audioCtx && this.audioCtx.state === 'running') {
+          this.audioCtx.suspend().catch(() => {});
+        }
+      }, 380);
+    }
+  }
+
+  scheduleMusicLoop() {
+    clearTimeout(this.musicTimeout);
+    if (!this.isPlaying || this.isPaused || !this.audioCtx || !this.musicGain) return;
+
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const speedFactor = this.feverActive
+      ? 0.55
+      : Math.max(0.58, 1 - this.levelIdx * 0.03);
+    const beatDur = BASE_BEAT_DUR * speedFactor;
+
+    if (this.nextNoteTime < now - 0.05) {
+      this.nextNoteTime = now + 0.02;
+    }
+
+    const lookaheadSec = 0.8;
+    const notesPool = this.feverActive ? FEVER_NOTES : PENTA_NOTES;
+
+    while (this.nextNoteTime < now + lookaheadSec) {
+      const t = this.nextNoteTime;
+      const stepIndex = this.musicStep;
+      const freq = notesPool[stepIndex % notesPool.length];
+
+      const osc = ctx.createOscillator();
+      osc.type = this.feverActive ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(this.feverActive ? 0.6 : 0.48, t + 0.04);
+      env.gain.exponentialRampToValueAtTime(0.001, t + beatDur * 0.82);
+
+      osc.connect(env);
+      env.connect(this.musicGain);
+      osc.start(t);
+      osc.stop(t + beatDur * 0.85);
+      osc.onended = () => {
+        osc.disconnect();
+        env.disconnect();
+      };
+
+      // Subtle bass note every 4 steps
+      if (stepIndex % 4 === 0) {
+        const bass = ctx.createOscillator();
+        bass.type = 'sine';
+        bass.frequency.setValueAtTime(freq * 0.5, t);
+        const bEnv = ctx.createGain();
+        bEnv.gain.setValueAtTime(0, t);
+        bEnv.gain.linearRampToValueAtTime(0.32, t + 0.03);
+        bEnv.gain.exponentialRampToValueAtTime(0.001, t + beatDur * 1.5);
+        bass.connect(bEnv);
+        bEnv.connect(this.musicGain);
+        bass.start(t);
+        bass.stop(t + beatDur * 1.55);
+        bass.onended = () => {
+          bass.disconnect();
+          bEnv.disconnect();
+        };
+      }
+
+      this.nextNoteTime += beatDur;
+      this.musicStep++;
+    }
+
+    this.musicTimeout = setTimeout(() => this.scheduleMusicLoop(), 250);
+  }
+
+  setMusicOn(on) {
+    this.musicOn = Boolean(on);
+    if (this.audioCtx && this.musicGain) {
+      this.musicGain.gain.setTargetAtTime(
+        this.musicOn && this.isPlaying ? 0.06 : 0,
+        this.audioCtx.currentTime,
+        0.2
+      );
+    }
+  }
+
+  setSfxOn(on) {
+    this.sfxOn = Boolean(on);
+    if (this.audioCtx && this.sfxGain) {
+      this.sfxGain.gain.setValueAtTime(this.sfxOn ? 1.0 : 0, this.audioCtx.currentTime);
+    }
+    if (!this.sfxOn && this.audioCtx && this.purrGain) {
+      this.purrGain.gain.setTargetAtTime(0, this.audioCtx.currentTime, 0.15);
+    }
+    if (!this.sfxOn) {
+      this.cancelSpeech();
+    }
+  }
+
+  setVoiceMode(mode) {
+    this.voiceMode = mode;
+    if (mode === 'off') {
+      this.cancelSpeech();
+    }
+  }
+
+  setPurrVol(pct) {
+    if (!this.purrGain || !this.audioCtx) return;
+    const target = this.sfxOn && this.isPlaying ? Math.sqrt(Math.max(0, pct) / 100) * MAX_PURR_VOL : 0;
+    this.purrGain.gain.setTargetAtTime(target, this.audioCtx.currentTime, 0.45);
+  }
+
+  // ── Procedural Sound Effects ──
+
+  playMeow(combo = 1) {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const root = 480 + Math.min(combo * 15, 140) + Math.random() * 120;
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(root * 0.75, now);
+    osc.frequency.linearRampToValueAtTime(root * 1.35, now + 0.12);
+    osc.frequency.linearRampToValueAtTime(root * 0.6, now + 0.38);
+    osc.frequency.linearRampToValueAtTime(root * 0.45, now + 0.55);
+
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.setValueAtTime(900, now);
+    filt.frequency.linearRampToValueAtTime(1400, now + 0.12);
+    filt.frequency.linearRampToValueAtTime(700, now + 0.5);
+    filt.Q.value = 3.5;
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(0.35, now + 0.04);
+    env.gain.setValueAtTime(0.35, now + 0.06);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+    osc.connect(filt);
+    filt.connect(env);
+    env.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.65);
+    osc.onended = () => {
+      osc.disconnect();
+      filt.disconnect();
+      env.disconnect();
+    };
+  }
+
+  playCatchPop(combo = 1) {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const pitchMult = 1 + Math.min(combo, 8) * 0.05;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(860 * pitchMult, now);
+    osc.frequency.linearRampToValueAtTime(440 * pitchMult, now + 0.08);
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.2, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    osc.connect(env);
+    env.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.12);
+    osc.onended = () => {
+      osc.disconnect();
+      env.disconnect();
+    };
+  }
+
+  playGoldenChime() {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    [587.33, 880, 1174.66].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      const t = now + idx * 0.045;
+      osc.frequency.setValueAtTime(freq, t);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.18, t);
+      env.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.3);
+      osc.onended = () => {
+        osc.disconnect();
+        env.disconnect();
+      };
+    });
+  }
+
+  playPowerupSound() {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      const t = now + idx * 0.05;
+      osc.frequency.setValueAtTime(freq, t);
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.18, t);
+      env.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      osc.connect(env);
+      env.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.24);
+      osc.onended = () => {
+        osc.disconnect();
+        env.disconnect();
+      };
+    });
+  }
+
+  playShieldBlock() {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(960, now + 0.18);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.25, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(env);
+    env.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.24);
+    osc.onended = () => {
+      osc.disconnect();
+      env.disconnect();
+    };
+  }
+
+  playLevelUpWhoosh() {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const bufLen = Math.floor(ctx.sampleRate * 0.4);
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(i / bufLen, 0.5);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.setValueAtTime(400, now);
+    filt.frequency.linearRampToValueAtTime(2400, now + 0.4);
+    filt.Q.value = 1.5;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.3, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    src.connect(filt);
+    filt.connect(env);
+    env.connect(this.sfxGain);
+    src.start(now);
+    src.stop(now + 0.45);
+    src.onended = () => {
+      src.disconnect();
+      filt.disconnect();
+      env.disconnect();
+    };
+  }
+
+  playHiss() {
+    if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.linearRampToValueAtTime(220, now + 0.5);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.28, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    osc.connect(g);
+    g.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.6);
+    osc.onended = () => {
+      osc.disconnect();
+      g.disconnect();
+    };
+  }
+
+  // ── Speech Synthesis ──
+
+  cancelSpeech() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  speakIt(text, pitchV = 1.0, rateV = 1.0) {
+    if (!this.sfxOn || this.voiceMode === 'off') return null;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const v =
+        voices.find((voice) => /male|deep|uk|daniel|alex/i.test(voice.name)) || voices[0];
+      const u = new SpeechSynthesisUtterance(text);
+      u.pitch = pitchV;
+      u.rate = rateV;
+      u.volume = 0.9;
+      if (v) u.voice = v;
+      window.speechSynthesis.speak(u);
+      return u;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  playBiteVoice(biteCount) {
+    if (!this.sfxOn || this.voiceMode === 'off' || this.speechBusy) return;
+    this.speechBusy = true;
+    this.cancelSpeech();
+
+    if (this.voiceMode === 'wholesome') {
+      const phrases = [
+        'thank you! so yummy!',
+        'purrfect citrus!',
+        'nom nom nom, more oranges please!',
+        'vitamin C secured!',
+      ];
+      const u = this.speakIt(phrases[Math.floor(Math.random() * phrases.length)], 1.35, 1.05);
+      this.armSpeechReset(u);
+      return;
+    }
+
+    // Classic 'unhinged' mode
+    const pitch = Math.max(0, 1.0 - (biteCount - 1) * 0.045);
+    const rate = Math.max(0.35, 0.85 - (biteCount - 1) * 0.025);
+    const tp = ['thank you', 'thank yoooou', 'thaaaaank you', 'thank you for the orange'];
+    const dp = ['yes daddy', 'yes. daddy.', 'yeeees daddy', 'yes daddy. more orange.'];
+    const u1 = this.speakIt(tp[Math.floor(Math.random() * tp.length)], pitch, rate);
+    const u2 = this.speakIt(
+      dp[Math.floor(Math.random() * dp.length)],
+      Math.max(0, pitch * 0.7),
+      Math.max(0.3, rate * 0.85)
+    );
+    this.armSpeechReset(u2 || u1);
+  }
+
+  playMissVoice() {
+    if (!this.sfxOn || this.voiceMode === 'off') return;
+    this.cancelSpeech();
+    this.speechBusy = false;
+
+    if (this.voiceMode === 'wholesome') {
+      const lines = ['oh no, my orange!', 'oops, we missed one!', 'my citrus splatted!'];
+      this.speakIt(lines[Math.floor(Math.random() * lines.length)], 1.2, 1.0);
+      return;
+    }
+
+    const lines = [
+      'you are an asshole',
+      'slow down, you asshole',
+      'asshole. i said savour it.',
+      'you absolute asshole. slow. down.',
+    ];
+    this.speakIt(lines[Math.floor(Math.random() * lines.length)], 0.1, 0.7);
+  }
+
+  playGameOverVoice(reason) {
+    if (!this.sfxOn || this.voiceMode === 'off') return;
+    setTimeout(() => {
+      if (this.isPlaying) return; // Don't speak if player already started a new game!
+      if (this.voiceMode === 'wholesome') {
+        const msg =
+          reason === 'starved'
+            ? 'my tummy is rumbling. feed me again soon!'
+            : reason === 'time_up'
+            ? 'time is up! great job catching oranges!'
+            : 'all out of lives! let us try again!';
+        this.speakIt(msg, 1.2, 0.95);
+      } else {
+        const msg =
+          reason === 'starved'
+            ? 'i am so hungry. why did you fail me.'
+            : reason === 'time_up'
+            ? 'time is up. feed me faster next time.'
+            : 'you let them all fall. asshole.';
+        this.speakIt(msg, 0, 0.5);
+      }
+    }, 350);
+  }
+
+  armSpeechReset(utterance) {
+    clearTimeout(this.speechSafetyTimer);
+    this.speechSafetyTimer = setTimeout(() => {
+      this.speechBusy = false;
+    }, 5000);
+    const reset = () => {
+      this.speechBusy = false;
+      clearTimeout(this.speechSafetyTimer);
+    };
+    if (utterance) {
+      utterance.onend = reset;
+      utterance.onerror = reset;
+    } else {
+      reset();
+    }
+  }
 }
 
-function scheduleSpawn(){
-  clearTimeout(spawnTimer);
-  if(gs!=='playing') return;
-  const cfg=getLevelCfg(levelIdx);
-  spawnTimer=setTimeout(()=>{ spawnOrange(); scheduleSpawn(); }, cfg.spawnMs);
+// ── Module: fx.js ──
+// ═══════════════════════════════════════════════════════════════════════════
+//  CITRUS KITTEN (CANTRONN) — CANVAS SLICE TRAIL & JUICE PARTICLE ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Checks if a line segment (x1,y1)-(x2,y2) intersects a circle (cx,cy,r).
+ */
+function segmentIntersectsCircle(x1, y1, x2, y2, cx, cy, r) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    return Math.hypot(cx - x1, cy - y1) <= r;
+  }
+  let t = ((cx - x1) * dx + (cy - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const nearX = x1 + t * dx;
+  const nearY = y1 + t * dy;
+  return Math.hypot(cx - nearX, cy - nearY) <= r;
 }
 
-// ═══════════════════════════════════════════════════════
-//  CATCH / MISS
-// ═══════════════════════════════════════════════════════
-let lastCatchTime=null;
-function catchOrange(obj){
-  if(gs!=='playing') return;
-  // remove from array immediately (no mutation during iteration — collected here before loop)
-  oranges=oranges.filter(o=>o.id!==obj.id);
-  obj.el.classList.add('caught');
-  obj.el.addEventListener('animationend',()=>obj.el.remove());
+class CanvasFX {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas ? canvas.getContext('2d') : null;
+    this.trail = []; // [{ x, y, time }]
+    this.droplets = []; // [{ x, y, vx, vy, r, color, alpha, decay }]
+    this.rings = []; // [{ x, y, r, maxR, color, alpha }]
+    this.resize();
+  }
 
-  // lemon: clicking loses a life (unless shield active — fix #13)
-  if(obj.fruitType==='lemon'){
-    combo=0;  // fix #10: lemon breaks combo
-    if(shieldActive){
-      // fix #13: shield absorbs lemon click
-      shieldActive=false;
+  resize() {
+    if (!this.canvas || typeof window === 'undefined') return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = window.innerWidth * dpr;
+    this.canvas.height = window.innerHeight * dpr;
+    if (this.ctx) {
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+  }
+
+  addTrailPoint(x, y, now = performance.now()) {
+    this.trail.push({ x, y, time: now });
+    if (this.trail.length > 24) {
+      this.trail.shift();
+    }
+  }
+
+  clearTrail() {
+    this.trail.length = 0;
+  }
+
+  spawnJuiceBurst(x, y, color = '#ff9800', count = 12) {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+      const speed = 90 + Math.random() * 190;
+      this.droplets.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 40,
+        r: 3 + Math.random() * 4.5,
+        color,
+        alpha: 1,
+        decay: 1.4 + Math.random() * 0.8,
+      });
+    }
+    this.rings.push({
+      x,
+      y,
+      r: 8,
+      maxR: 52,
+      color,
+      alpha: 0.85,
+    });
+  }
+
+  updateAndDraw(dt, now = performance.now(), feverActive = false) {
+    if (!this.ctx || !this.canvas) return;
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    // 1. Prune and draw slice trail
+    while (this.trail.length > 0 && now - this.trail[0].time > 160) {
+      this.trail.shift();
+    }
+
+    if (this.trail.length >= 2) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let i = 1; i < this.trail.length; i++) {
+        const p0 = this.trail[i - 1];
+        const p1 = this.trail[i];
+        const age = (now - p1.time) / 160;
+        const alpha = Math.max(0, 1 - age);
+        const width = Math.max(2, (1 - age) * 12);
+
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = feverActive
+          ? `rgba(255, 215, 0, ${alpha * 0.9})`
+          : `rgba(255, 138, 0, ${alpha * 0.85})`;
+        ctx.lineWidth = width;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.95})`;
+        ctx.lineWidth = width * 0.42;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 2. Update & draw expanding rings
+    for (let i = this.rings.length - 1; i >= 0; i--) {
+      const ring = this.rings[i];
+      ring.r += (ring.maxR - ring.r) * Math.min(1, dt * 10);
+      ring.alpha -= dt * 2.4;
+      if (ring.alpha <= 0.02) {
+        this.rings.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+      ctx.strokeStyle = ring.color;
+      ctx.globalAlpha = Math.max(0, ring.alpha);
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 3. Update & draw juice droplets
+    for (let i = this.droplets.length - 1; i >= 0; i--) {
+      const d = this.droplets[i];
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vy += 380 * dt; // gravity
+      d.alpha -= d.decay * dt;
+      if (d.alpha <= 0.02) {
+        this.droplets.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fillStyle = d.color;
+      ctx.globalAlpha = Math.max(0, d.alpha);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+// ── Module: game.js ──
+// ═══════════════════════════════════════════════════════════════════════════
+//  CITRUS KITTEN (CANTRONN) — CORE GAME ENGINE & UI CONTROLLER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initCitrusKittenApp() {
+  if (typeof document === 'undefined') return null;
+
+  // ── DOM References ──
+  const gameArea = document.getElementById('gameArea');
+  const fxCanvas = document.getElementById('fxCanvas');
+  const kittenWrap = document.getElementById('kittenWrap');
+  const shieldDome = document.getElementById('shieldDome');
+  const magnetAura = document.getElementById('magnetAura');
+  const scoreDisp = document.getElementById('scoreDisplay');
+  const levelDisp = document.getElementById('levelDisplay');
+  const bestDisp = document.getElementById('bestDisplay');
+  const livesDisp = document.getElementById('lives');
+  const livesHudLabel = document.getElementById('livesHudLabel');
+  const hungerBar = document.getElementById('hungerBar');
+  const hungerHudLabel = document.getElementById('hungerHudLabel');
+  const bubble = document.getElementById('bubble');
+  const purrBar = document.getElementById('purrBar');
+  const feverBar = document.getElementById('feverBar');
+  const purrLabel = document.getElementById('purrLabel');
+  const flashOv = document.getElementById('flashOverlay');
+  const powerupHud = document.getElementById('powerupHud');
+  const toastEl = document.getElementById('toastEl');
+  const pupilL = document.getElementById('pupilL');
+  const pupilR = document.getElementById('pupilR');
+  const hungerVignette = document.getElementById('hungerVignette');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const musicToggle = document.getElementById('musicToggle');
+  const sfxToggle = document.getElementById('sfxToggle');
+  const voiceToggle = document.getElementById('voiceToggle');
+
+  // ── Persistent State & Subsystems ──
+  const settings = getSettings();
+  const sound = new SoundEngine(settings);
+  const fx = new CanvasFX(fxCanvas);
+
+  let best = getBestScore();
+  let selectedMode = 'classic';
+  let selectedSkin = getSelectedSkin();
+
+  bestDisp.textContent = best;
+  const startBestEl = document.getElementById('startBest');
+  if (startBestEl) startBestEl.textContent = best;
+
+  // ── Runtime Game State ──
+  let gs = 'start'; // 'start' | 'playing' | 'over'
+  let score = 0;
+  let lives = 3;
+  let levelIdx = 0;
+  let hunger = 100;
+  let blitzTimeLeft = 90;
+  let combo = 0;
+  let caught = 0;
+  let missed = 0;
+  let mouthCatchesThisGame = 0;
+  let speechBiteCount = 0;
+  let feverCharge = 0;
+  let feverActive = false;
+  let feverEndTime = 0;
+
+  let oranges = [];
+  let oid = 0;
+  let spawnTimer = null;
+  let animFrame = null;
+  let lastTs = null;
+  let bubbleTimer = null;
+  let eyeTimer = null;
+  let levelUpTimer = null;
+  let scoreRollTimer = null;
+  let toastTimer = null;
+
+  let levelFrozen = false;
+  let paused = false;
+  let pausedAt = 0;
+  let prevLives = -1; // Initialized to -1 so first updateHUD always renders!
+  let displayedScore = 0;
+  let maxComboThisGame = 0;
+  let missesThisLevel = 0;
+  let sessionUnlocks = [];
+  let lifetimeCaughtBase = getSessionStats().totalCaught || 0;
+
+  // Power-ups
+  let activePowerups = {};
+  let shieldActive = false;
+
+  // Kitten Horizontal Movement & Hitbox Cache
+  let kittenRatioX = 0.5; // 0.12 to 0.88 across screen width
+  let kitCX = 0;
+  let kitCY = 0;
+  let hudOffsetTop = 60;
+  const keysHeld = { left: false, right: false, shift: false };
+  let draggingKitten = false;
+
+  // Swipe / Slice State
+  let isSwiping = false;
+  let lastSwipePt = null;
+  let swipeCatchCount = 0;
+
+  // ── Audio & Voice Controls Setup ──
+  function syncAudioButtons() {
+    if (musicToggle) {
+      musicToggle.textContent = sound.musicOn ? '🔊' : '🔇';
+      musicToggle.title = sound.musicOn ? 'Music: ON' : 'Music: OFF';
+    }
+    if (sfxToggle) {
+      sfxToggle.textContent = sound.sfxOn ? '🔔' : '🔕';
+      sfxToggle.title = sound.sfxOn ? 'SFX & Purr: ON' : 'SFX & Purr: OFF';
+    }
+    if (voiceToggle) {
+      const icon =
+        sound.voiceMode === 'unhinged'
+          ? '🌶️'
+          : sound.voiceMode === 'wholesome'
+          ? '😇'
+          : '🙊';
+      voiceToggle.textContent = icon;
+      voiceToggle.title = `Voice Mode: ${sound.voiceMode.toUpperCase()} (Click to cycle)`;
+    }
+  }
+  syncAudioButtons();
+
+  musicToggle?.addEventListener('click', () => {
+    sound.setMusicOn(!sound.musicOn);
+    settings.musicOn = sound.musicOn;
+    saveSettings(settings);
+    syncAudioButtons();
+  });
+
+  sfxToggle?.addEventListener('click', () => {
+    sound.setSfxOn(!sound.sfxOn);
+    settings.sfxOn = sound.sfxOn;
+    saveSettings(settings);
+    syncAudioButtons();
+    updatePurr();
+  });
+
+  voiceToggle?.addEventListener('click', () => {
+    const order = ['unhinged', 'wholesome', 'off'];
+    const next = order[(order.indexOf(sound.voiceMode) + 1) % order.length];
+    sound.setVoiceMode(next);
+    settings.voiceMode = next;
+    saveSettings(settings);
+    syncAudioButtons();
+    const labelMap = {
+      unhinged: '🌶️ Voice: Classic Unhinged',
+      wholesome: '😇 Voice: Cute & Wholesome',
+      off: '🙊 Voice: Off (SFX Only)',
+    };
+    showToast(labelMap[next], 1800);
+  });
+
+  // ── Kitten Skins & SVG Appearance ──
+  function applyKittenSkin(skinId) {
+    const unlocked = getUnlockedAchievements();
+    const stats = getSessionStats();
+    let skin = KITTEN_SKINS.find((s) => s.id === skinId);
+    if (!skin || !skin.isUnlocked(unlocked, stats)) {
+      skin = KITTEN_SKINS[0];
+    }
+    selectedSkin = skin.id;
+    saveSelectedSkin(selectedSkin);
+
+    const svg = kittenWrap?.querySelector('svg.kitten');
+    if (svg) {
+      svg.querySelectorAll('[data-skin]').forEach((el) => {
+        const key = el.getAttribute('data-skin');
+        if (skin.colors[key]) el.setAttribute('fill', skin.colors[key]);
+      });
+      svg.querySelectorAll('[data-skin-stroke]').forEach((el) => {
+        const key = el.getAttribute('data-skin-stroke');
+        if (skin.colors[key]) el.setAttribute('stroke', skin.colors[key]);
+      });
+    }
+
+    const accMap = {
+      bowtie: 'accBowtie',
+      flower: 'accFlower',
+      visor: 'accVisor',
+      crown: 'accCrown',
+    };
+    Object.entries(accMap).forEach(([key, domId]) => {
+      const el = document.getElementById(domId);
+      if (el) el.style.display = skin.accessory === key ? '' : 'none';
+    });
+
+    const startEmoji = document.getElementById('startKittenEmoji');
+    if (startEmoji) startEmoji.textContent = skin.icon;
+  }
+
+  function renderModeSelector() {
+    const container = document.getElementById('modeSelector');
+    if (!container) return;
+    container.innerHTML = Object.values(GAME_MODES)
+      .map(
+        (m) => `
+      <div class="mode-card ${m.id === selectedMode ? 'selected' : ''}" data-mode="${m.id}">
+        <span class="mode-icon">${m.icon}</span>
+        <div>
+          <div class="mode-title">${m.name}</div>
+          <div class="mode-desc">${m.desc}</div>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+
+    container.querySelectorAll('.mode-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        selectedMode = card.getAttribute('data-mode') || 'classic';
+        renderModeSelector();
+      });
+    });
+  }
+
+  function renderWardrobe() {
+    const container = document.getElementById('skinSelector');
+    if (!container) return;
+    const unlocked = getUnlockedAchievements();
+    const stats = getSessionStats();
+
+    container.innerHTML = KITTEN_SKINS.map((skin) => {
+      const open = skin.isUnlocked(unlocked, stats);
+      const isSel = skin.id === selectedSkin;
+      return `
+        <button type="button" class="skin-chip ${isSel ? 'selected' : ''} ${
+        open ? '' : 'locked'
+      }" data-skin-id="${skin.id}" title="${open ? skin.name : skin.unlockText}">
+          ${skin.icon} ${skin.name} ${open ? '' : '🔒'}
+        </button>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.skin-chip').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-skin-id');
+        const skin = KITTEN_SKINS.find((s) => s.id === id);
+        if (!skin) return;
+        if (!skin.isUnlocked(getUnlockedAchievements(), getSessionStats())) {
+          showToast(`🔒 ${skin.unlockText}`, 2200);
+          return;
+        }
+        applyKittenSkin(id);
+        renderWardrobe();
+        showToast(`${skin.icon} Equipped ${skin.name}!`, 1600);
+      });
+    });
+  }
+
+  // ── Leaderboard / Achievements UI ──
+  function renderLeaderboardUI(lb, container) {
+    if (!container) return;
+    if (!lb.length) {
+      container.innerHTML = '';
+      return;
+    }
+    let html = '<div class="leaderboard"><h3>🏆 Top 10 High Scores</h3>';
+    lb.forEach((e, i) => {
+      const acc = typeof e.accuracy === 'number' ? e.accuracy + '%' : '?';
+      const date = e.date ? new Date(e.date).toLocaleDateString() : '';
+      const modeTag = e.mode && GAME_MODES[e.mode] ? GAME_MODES[e.mode].icon : '🎮';
+      html += `<div class="lb-row">
+        <span class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1 + '.'}</span>
+        <span class="lb-score">${e.score} <small>${modeTag}</small></span>
+        <span class="lb-detail">Lv${e.level} · ${acc} · ${date}</span>
+      </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function checkAchievement(id) {
+    const unlocked = getUnlockedAchievements();
+    if (unlocked.includes(id)) return;
+    unlocked.push(id);
+    saveAchievements(unlocked);
+    sessionUnlocks.push(id);
+    const def = ACHIEVEMENT_DEFS.find((d) => d.id === id);
+    if (def) showToast(`${def.icon} Achievement: ${def.label}!`);
+  }
+
+  function renderAchievementsUI(container) {
+    if (!container) return;
+    const unlocked = getUnlockedAchievements();
+    let html = `<div class="achievements-wrap"><h3>🎖️ Achievements (${unlocked.length}/${ACHIEVEMENT_DEFS.length})</h3><div class="ach-grid">`;
+    ACHIEVEMENT_DEFS.forEach((d) => {
+      const done = unlocked.includes(d.id);
+      html += `<div class="ach-badge ${done ? 'unlocked' : 'locked'}" title="${d.desc}">${
+        d.icon
+      } ${d.label}</div>`;
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+  }
+
+  function renderSessionStatsUI() {
+    const s = getSessionStats();
+    const el = document.getElementById('startSessionStats');
+    if (!el) return;
+    if (!s.gamesPlayed) {
+      el.textContent = '';
+      return;
+    }
+    el.textContent = `Games: ${s.gamesPlayed} · Total caught: ${
+      s.totalCaught || 0
+    } · Best combo: x${Math.min(8, s.bestCombo || 0)} (${
+      s.bestCombo || 0
+    } streak) · Best accuracy: ${s.bestAccuracy || 0}%`;
+  }
+
+  function showToast(msg, dur = 2600) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), dur);
+  }
+
+  // ── Kitten Face & Positioning ──
+  function setFace(mood) {
+    const en = document.getElementById('eyesNormal');
+    const eh = document.getElementById('eyesHappy');
+    const es = document.getElementById('eyesScared');
+    const mn = document.getElementById('mouthNormal');
+    const mh = document.getElementById('mouthHappy');
+    const ms = document.getElementById('mouthSad');
+    const tg = document.getElementById('tongue');
+    if (en) en.style.display = mood === 'normal' || mood === 'sad' ? '' : 'none';
+    if (eh) eh.style.display = mood === 'happy' ? '' : 'none';
+    if (es) es.style.display = mood === 'scared' ? '' : 'none';
+    if (mn) mn.style.display = mood === 'normal' || mood === 'scared' ? '' : 'none';
+    if (mh) mh.style.display = mood === 'happy' ? '' : 'none';
+    if (ms) ms.style.display = mood === 'sad' ? '' : 'none';
+    if (tg) tg.style.display = mood === 'happy' ? '' : 'none';
+  }
+
+  function flashFace(mood, ms = 580) {
+    setFace(mood);
+    clearTimeout(eyeTimer);
+    eyeTimer = setTimeout(() => {
+      eyeTimer = null;
+      setFace(hunger < 25 && selectedMode === 'classic' ? 'sad' : 'normal');
+    }, ms);
+  }
+
+  function updateKittenDOMPos() {
+    if (!kittenWrap) return;
+    kittenRatioX = Math.max(0.1, Math.min(0.9, kittenRatioX));
+    kittenWrap.style.left = `${kittenRatioX * 100}%`;
+    cacheKittenPos();
+  }
+
+  function cacheKittenPos() {
+    if (!kittenWrap || !gameArea) return;
+    const areaRect = gameArea.getBoundingClientRect();
+    hudOffsetTop = areaRect.top || 60;
+    const kitRect = kittenWrap.getBoundingClientRect();
+    // Coordinates in gameArea local space:
+    kitCX = kitRect.left - areaRect.left + kitRect.width * 0.5;
+    kitCY = kitRect.top - areaRect.top + kitRect.height * 0.42;
+  }
+
+  function updateEyeTracking() {
+    if (!eyeTimer && oranges.length > 0 && pupilL && pupilR) {
+      let nearest = null;
+      let bestDist = Infinity;
+      for (const o of oranges) {
+        const dist = Math.hypot(o.x - kitCX, o.y - kitCY);
+        if (o.y > -20 && dist < bestDist) {
+          bestDist = dist;
+          nearest = o;
+        }
+      }
+      if (nearest) {
+        const dx = Math.max(-4.5, Math.min(4.5, (nearest.x - kitCX) / 55));
+        const dy = Math.max(-3.5, Math.min(3.5, (nearest.y - kitCY) / 75));
+        pupilL.setAttribute('cx', String(213 + dx));
+        pupilL.setAttribute('cy', String(158 + dy));
+        pupilR.setAttribute('cx', String(273 + dx));
+        pupilR.setAttribute('cy', String(158 + dy));
+      }
+    }
+  }
+
+  function showBubble(msg) {
+    if (!bubble) return;
+    bubble.textContent = msg;
+    bubble.classList.add('show');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => bubble.classList.remove('show'), 1800);
+  }
+
+  // ── HUD & Visual Feedback ──
+  function updateHUD() {
+    // Score roll-up animation
+    if (score !== displayedScore) {
+      clearTimeout(scoreRollTimer);
+      const diff = score - displayedScore;
+      const step = Math.max(1, Math.ceil(Math.abs(diff) / 8));
+      const rollStep = () => {
+        if (displayedScore === score) return;
+        const d = score - displayedScore;
+        displayedScore += Math.sign(d) * Math.min(step, Math.abs(d));
+        if (scoreDisp) scoreDisp.textContent = String(displayedScore);
+        if (displayedScore !== score) scoreRollTimer = setTimeout(rollStep, 25);
+      };
+      rollStep();
+    } else if (scoreDisp) {
+      scoreDisp.textContent = String(score);
+    }
+
+    if (levelDisp) levelDisp.textContent = String(levelIdx + 1);
+
+    // Mode-aware Lives / Blitz Timer display (Fixes Bug #1: prevLives reset bug!)
+    if (selectedMode === 'blitz') {
+      if (livesHudLabel) livesHudLabel.textContent = 'TIME';
+      const secs = Math.max(0, Math.ceil(blitzTimeLeft));
+      if (livesDisp) livesDisp.textContent = `⏱️ ${secs}s`;
+    } else if (selectedMode === 'zen') {
+      if (livesHudLabel) livesHudLabel.textContent = 'MODE';
+      if (livesDisp) livesDisp.textContent = '🌸 ZEN';
+    } else {
+      if (livesHudLabel) livesHudLabel.textContent = 'LIVES';
+      if (lives !== prevLives) {
+        if (lives <= 5) {
+          const hearts =
+            '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
+          if (livesDisp) livesDisp.innerHTML = hearts;
+        } else {
+          if (livesDisp) livesDisp.innerHTML = `❤️❤️❤️ +${lives - 3}`;
+        }
+        prevLives = lives;
+      }
+    }
+
+    // Hunger bar
+    if (hungerHudLabel) {
+      hungerHudLabel.textContent = selectedMode === 'zen' ? 'FULLNESS' : 'HUNGER';
+    }
+    if (hungerBar) {
+      hungerBar.style.width = `${Math.max(0, Math.min(100, hunger))}%`;
+      hungerBar.style.background =
+        hunger > 60 ? '#8bc34a' : hunger > 30 ? '#ff9800' : '#f44336';
+    }
+
+    if (hungerVignette) {
+      if (selectedMode === 'classic' && hunger < 22 && gs === 'playing') {
+        hungerVignette.classList.add('active');
+      } else {
+        hungerVignette.classList.remove('active');
+      }
+    }
+
+    // Fever bar
+    if (feverBar) {
+      if (feverActive) {
+        const rem = Math.max(0, feverEndTime - Date.now());
+        feverBar.style.width = `${(rem / 6000) * 100}%`;
+      } else {
+        feverBar.style.width = `${Math.min(100, feverCharge)}%`;
+      }
+    }
+  }
+
+  function updatePurr() {
+    const pct = Math.min(100, Math.max(0, hunger));
+    if (purrBar) purrBar.style.width = `${pct}%`;
+    const states = [
+      [80, feverActive ? '🌈 PURR FEVER (2x)!!!' : '😻 Loud purring!!!'],
+      [60, '😸 Full purr!'],
+      [40, '😊 Purring...'],
+      [20, '😐 Faint rumble...'],
+      [0, '😿 Not purring...'],
+    ];
+    for (const [t, l] of states) {
+      if (pct >= t) {
+        if (purrLabel) purrLabel.textContent = l;
+        break;
+      }
+    }
+    sound.setPurrVol(pct);
+  }
+
+  function flash(color = 'rgba(255,0,0,0.3)') {
+    if (!flashOv) return;
+    flashOv.style.background = color;
+    flashOv.style.opacity = '1';
+    setTimeout(() => {
+      flashOv.style.opacity = '0';
+    }, 120);
+  }
+
+  function screenShake() {
+    if (!gameArea) return;
+    gameArea.classList.remove('shaking');
+    void gameArea.offsetWidth;
+    gameArea.classList.add('shaking');
+    gameArea.addEventListener('animationend', () => gameArea.classList.remove('shaking'), {
+      once: true,
+    });
+  }
+
+  function spawnScorePop(localX, localY, text) {
+    const el = document.createElement('div');
+    el.className = 'score-pop';
+    el.textContent = text;
+    el.style.left = `${localX}px`;
+    el.style.top = `${localY + hudOffsetTop}px`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+    setTimeout(() => el.remove(), 1800);
+  }
+
+  function spawnComboFlash() {
+    if (combo < 2) return;
+    const el = document.createElement('div');
+    el.className = 'combo-flash';
+    const mult = Math.min(combo, 8);
+    el.textContent = `x${mult} COMBO! 🔥${combo > 8 ? ` (${combo} streak)` : ''}`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+    setTimeout(() => el.remove(), 1800);
+  }
+
+  function spawnCatchParticles(localX, localY, fruitType = 'normal') {
+    const screenX = localX;
+    const screenY = localY + hudOffsetTop;
+    const def = FRUIT_TYPES[fruitType] || FRUIT_TYPES.normal;
+    fx.spawnJuiceBurst(screenX, screenY, def.juiceColor, fruitType === 'giant' ? 16 : 11);
+
+    const emojis =
+      fruitType === 'golden'
+        ? ['✨', '💛', '🌟', '🍊']
+        : ['🍊', '💦', '✨', '🌿', '💛'];
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'catch-particle';
+      el.textContent = emojis[i % emojis.length];
+      const angle = (i / count) * Math.PI * 2;
+      const dist = 46 + Math.random() * 54;
+      el.style.setProperty('--tx', `${Math.cos(angle) * dist}px`);
+      el.style.setProperty('--ty', `${Math.sin(angle) * dist - 28}px`);
+      el.style.left = `${screenX}px`;
+      el.style.top = `${screenY}px`;
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+      setTimeout(() => el.remove(), 1600);
+    }
+  }
+
+  // ── Power-ups & Fever Overdrive ──
+  function activatePowerup(type) {
+    const def = POWERUPS[type];
+    if (!def) return;
+    checkAchievement('powerup_used');
+    showToast(`${def.icon} ${def.label} activated!`);
+
+    if (type === 'shield') {
+      shieldActive = true;
+      activePowerups.shield = { active: true };
+    } else if (type === 'frenzy') {
+      activePowerups.frenzy = { endTime: Date.now() + def.dur };
+      // Spawn an immediate burst of 3 oranges!
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          if (gs === 'playing' && !paused) spawnOrange('golden');
+        }, i * 160);
+      }
+    } else {
+      activePowerups[type] = { endTime: Date.now() + def.dur };
+    }
+    updatePowerupHud();
+  }
+
+  function triggerFeverMode() {
+    if (feverActive) return;
+    feverActive = true;
+    feverCharge = 100;
+    feverEndTime = Date.now() + 6000;
+    sound.feverActive = true;
+    document.body.classList.add('fever-mode');
+    checkAchievement('fever_trigger');
+    sound.playGoldenChime();
+    showToast('🌈 PURR FEVER! 2x Points & Golden Citrus!', 2400);
+  }
+
+  function updatePowerupHud() {
+    const now = Date.now();
+    for (const k of Object.keys(activePowerups)) {
+      if (k !== 'shield' && activePowerups[k].endTime < now) {
+        delete activePowerups[k];
+      }
+    }
+
+    if (shieldDome) {
+      shieldDome.classList.toggle('active', Boolean(shieldActive));
+    }
+    if (magnetAura) {
+      magnetAura.classList.toggle('active', isMagnet());
+    }
+
+    if (!powerupHud) return;
+    let html = '';
+    for (const [k, v] of Object.entries(activePowerups)) {
+      const def = POWERUPS[k];
+      if (!def) continue;
+      if (k === 'shield') {
+        html += `<div class="powerup-active">${def.icon} Shield Ready</div>`;
+      } else {
+        const remaining = Math.max(0, v.endTime - now);
+        const pct = (remaining / def.dur) * 100;
+        html += `<div class="powerup-active">${def.icon} ${def.label}
+          <div class="powerup-bar-wrap"><div class="powerup-bar" style="width:${pct}%"></div></div>
+        </div>`;
+      }
+    }
+    powerupHud.innerHTML = html;
+  }
+
+  function isSlowTime() {
+    return Boolean(activePowerups.slowTime && activePowerups.slowTime.endTime > Date.now());
+  }
+  function isMagnet() {
+    return Boolean(activePowerups.magnet && activePowerups.magnet.endTime > Date.now());
+  }
+  function isFrenzy() {
+    return Boolean(activePowerups.frenzy && activePowerups.frenzy.endTime > Date.now());
+  }
+
+  // ── Fruit Spawning ──
+  function spawnOrange(forcedType = null) {
+    if (gs !== 'playing' || paused || levelFrozen || !gameArea) return;
+    const cfg = getLevelCfg(levelIdx, selectedMode);
+    const maxCap = feverActive || isFrenzy() ? cfg.maxOranges + 3 : cfg.maxOranges;
+    if (!forcedType && oranges.length >= maxCap) return;
+
+    const fruitType = forcedType || pickFruitType(levelIdx, selectedMode, feverActive);
+    const def = FRUIT_TYPES[fruitType] || FRUIT_TYPES.normal;
+
+    const el = document.createElement('div');
+    el.className = `orange-fruit ${fruitType}`;
+    el.setAttribute('aria-hidden', 'true');
+
+    const baseSpeed = cfg.speed + (Math.random() - 0.5) * 30;
+    let emoji = def.emoji;
+    let badge = def.badge || '';
+    let powerupType = null;
+
+    if (fruitType === 'powerup') {
+      const ptypes = ['slowTime', 'magnet', 'shield', 'frenzy'];
+      powerupType = ptypes[Math.floor(Math.random() * ptypes.length)];
+      emoji = POWERUPS[powerupType].icon;
+    }
+
+    el.innerHTML = `<span>${emoji}</span>${
+      badge ? `<span class="fruit-badge">${badge}</span>` : ''
+    }`;
+
+    const areaWidth = gameArea.clientWidth || window.innerWidth;
+    const padding = 48;
+    const x = padding + Math.random() * Math.max(40, areaWidth - padding * 2);
+    const drift = (Math.random() - 0.5) * 1.2;
+    const accel = fruitType === 'giant' ? 0 : Math.random() * 0.08;
+
+    const obj = {
+      id: oid++,
+      el,
+      x,
+      y: -45,
+      baseX: x,
+      speed: baseSpeed * def.speedMult,
+      fruitType,
+      points: def.points,
+      hungerMult: def.hungerMult,
+      comboBoost: def.comboBoost || 1,
+      radius: def.radius || 30,
+      powerupType,
+      drift,
+      accel,
+      driftPhase: Math.random() * Math.PI * 2,
+    };
+
+    el.style.left = `${x}px`;
+    el.style.top = `${obj.y}px`;
+    el.addEventListener(
+      'pointerdown',
+      (ev) => {
+        ev.stopPropagation();
+        catchOrange(obj, 'tap');
+      },
+      { once: true }
+    );
+
+    gameArea.appendChild(el);
+    oranges.push(obj);
+  }
+
+  function scheduleSpawn() {
+    clearTimeout(spawnTimer);
+    if (gs !== 'playing' || paused || levelFrozen) return;
+    const cfg = getLevelCfg(levelIdx, selectedMode);
+    const interval = feverActive || isFrenzy() ? Math.max(240, cfg.spawnMs * 0.62) : cfg.spawnMs;
+    spawnTimer = setTimeout(() => {
+      spawnOrange();
+      scheduleSpawn();
+    }, interval);
+  }
+
+  // ── Catch & Miss Logic ──
+  function catchOrange(obj, source = 'tap') {
+    if (gs !== 'playing') return;
+    if (!oranges.some((o) => o.id === obj.id)) return;
+    oranges = oranges.filter((o) => o.id !== obj.id);
+
+    obj.el.classList.add('caught');
+    obj.el.addEventListener('animationend', () => obj.el.remove());
+    setTimeout(() => obj.el.remove(), 500);
+
+    // 1. Sour Lemon Hazard
+    if (obj.fruitType === 'lemon') {
+      combo = 0;
+      feverCharge = Math.max(0, feverCharge - 25);
+      if (shieldActive) {
+        shieldActive = false;
+        delete activePowerups.shield;
+        updatePowerupHud();
+        checkAchievement('shield_used');
+        sound.playShieldBlock();
+        showToast('🛡️ Shield blocked the sour lemon!');
+        flash('rgba(0, 229, 255, 0.35)');
+        return;
+      }
+
+      if (selectedMode === 'blitz') {
+        blitzTimeLeft = Math.max(0, blitzTimeLeft - 5);
+        spawnScorePop(obj.x, obj.y, '-5s 🍋');
+      } else if (selectedMode === 'classic') {
+        lives = Math.max(0, lives - 1);
+      }
+
+      flash('rgba(255, 235, 59, 0.45)');
+      flashFace('scared', 620);
+      showBubble('😖 THAT WAS A SOUR LEMON!!');
+      kittenWrap?.classList.remove('alarmed');
+      void kittenWrap?.offsetWidth;
+      kittenWrap?.classList.add('alarmed');
+      screenShake();
+      navigator.vibrate?.(100);
+      sound.playHiss();
+      updateHUD();
+      updatePurr();
+      if (selectedMode === 'classic' && lives <= 0) endGame('no_lives');
+      if (selectedMode === 'blitz' && blitzTimeLeft <= 0) endGame('time_up');
+      return;
+    }
+
+    // 2. Power-up Bubble
+    if (obj.fruitType === 'powerup') {
+      activatePowerup(obj.powerupType);
+      spawnScorePop(obj.x, obj.y, `${POWERUPS[obj.powerupType].icon} ${POWERUPS[obj.powerupType].label}!`);
+      spawnCatchParticles(obj.x, obj.y, 'powerup');
+      sound.playPowerupSound();
+      return;
+    }
+
+    // 3. Edible Citrus Fruit!
+    combo += obj.comboBoost || 1;
+    caught++;
+    if (source === 'mouth') {
+      mouthCatchesThisGame++;
+      if (mouthCatchesThisGame >= 10) checkAchievement('mouth_catch');
+    }
+    if (combo > maxComboThisGame) maxComboThisGame = combo;
+
+    const comboMult = Math.max(1, Math.min(combo, 8));
+    const feverMult = feverActive || isFrenzy() ? 2 : 1;
+    const mouthBonus = source === 'mouth' ? 1.2 : 1.0;
+    const pts = Math.round(obj.points * comboMult * feverMult * mouthBonus);
+    score += pts;
+
+    // Properly scaled hunger refill (Fixes Bug #3!)
+    const cfg = getLevelCfg(levelIdx, selectedMode);
+    const totalHunger = cfg.hungerRefill * (obj.hungerMult || 1);
+    hunger = Math.min(100, hunger + totalHunger);
+
+    if (selectedMode === 'blitz' && obj.fruitType === 'golden') {
+      blitzTimeLeft += 2;
+    }
+
+    // Charge Fever Bar
+    if (!feverActive) {
+      feverCharge = Math.min(100, feverCharge + (obj.fruitType === 'golden' ? 22 : 9));
+      if (feverCharge >= 100) {
+        triggerFeverMode();
+      }
+    }
+
+    // Kitten Chomp Animation
+    if (kittenWrap) {
+      kittenWrap.classList.remove('chomping');
+      void kittenWrap.offsetWidth;
+      kittenWrap.classList.add('chomping');
+      kittenWrap.addEventListener(
+        'animationend',
+        () => kittenWrap.classList.remove('chomping'),
+        { once: true }
+      );
+    }
+
+    flashFace('happy', 520);
+    showBubble(
+      source === 'mouth'
+        ? '😻 Direct Mouth Catch! +20%'
+        : CATCH_MESSAGES[caught % CATCH_MESSAGES.length]
+    );
+    const popLabel =
+      combo >= 2
+        ? `+${pts} x${comboMult}${feverMult > 1 ? '🔥' : ''}!`
+        : `+${pts}`;
+    spawnScorePop(obj.x, obj.y, popLabel);
+    spawnCatchParticles(obj.x, obj.y, obj.fruitType);
+    if (combo >= 2) spawnComboFlash();
+
+    navigator.vibrate?.(25);
+    if (obj.fruitType === 'golden') {
+      sound.playGoldenChime();
+    } else {
+      sound.playCatchPop(combo);
+    }
+    sound.playMeow(combo);
+
+    speechBiteCount++;
+    if (speechBiteCount % 8 === 0) {
+      sound.playBiteVoice(speechBiteCount);
+    }
+
+    // Check Achievements (including cumulative lifetime catches — Fixes Bug #7!)
+    const totalLifetime = lifetimeCaughtBase + caught;
+    if (caught === 1) checkAchievement('first_catch');
+    if (combo >= 5) checkAchievement('combo_x5');
+    if (combo >= 8) checkAchievement('combo_x8');
+    if (obj.fruitType === 'golden') checkAchievement('golden_catch');
+    if (totalLifetime >= 50) checkAchievement('catches_50');
+    if (totalLifetime >= 100) checkAchievement('catches_100');
+    if (score >= 500) checkAchievement('score_500');
+    if (score >= 2500) checkAchievement('score_2500');
+
+    // Level-Up Check (every 10 catches)
+    const newLvl = Math.floor(caught / 10);
+    if (newLvl > levelIdx) {
+      if (missesThisLevel === 0 && levelIdx > 0) checkAchievement('perfect_level');
+      missesThisLevel = 0;
+      levelIdx = newLvl;
+      sound.levelIdx = levelIdx;
+      if (levelIdx >= 4) checkAchievement('level_5');
+      if (levelIdx >= 9) checkAchievement('level_10');
+      if (selectedMode === 'classic' && levelIdx > 0 && levelIdx % 10 === 0) {
+        lives++;
+        showToast('❤️ Bonus life! Keep going!');
+      }
+      triggerLevelUp();
+    }
+
+    updateHUD();
+    updatePurr();
+  }
+
+  function missOrange(obj) {
+    if (gs !== 'playing') return;
+    obj.el.classList.add('missed');
+    obj.el.addEventListener('animationend', () => obj.el.remove());
+    setTimeout(() => obj.el.remove(), 500);
+
+    // Letting hazards or power-ups fall off-screen is never penalized
+    if (obj.fruitType === 'lemon' || obj.fruitType === 'powerup') return;
+
+    // Zen mode has no miss penalties
+    if (selectedMode === 'zen') return;
+
+    // Shield blocks the miss BEFORE incrementing penalty counters
+    if (shieldActive) {
+      shieldActive = false;
       delete activePowerups.shield;
       updatePowerupHud();
       checkAchievement('shield_used');
-      showToast('🛡️ Shield absorbed the lemon!');
-      flash('rgba(100,200,255,0.4)');
+      sound.playShieldBlock();
+      showToast('🛡️ Shield absorbed the miss!');
+      flash('rgba(0, 229, 255, 0.35)');
       return;
     }
-    lives=Math.max(0,lives-1);
-    flash('rgba(255,255,0,0.4)');
-    flashFace('scared',600);
-    showBubble('😖 THAT WAS A LEMON!!');
+
+    combo = 0;
+    missed++;
+    missesThisLevel++;
+    feverCharge = Math.max(0, feverCharge - 18);
+
+    if (selectedMode === 'classic') {
+      lives = Math.max(0, lives - 1);
+      hunger = Math.max(0, hunger - 16);
+    } else if (selectedMode === 'blitz') {
+      hunger = Math.max(20, hunger - 10);
+    }
+
+    flash('rgba(200, 0, 0, 0.28)');
     screenShake();
-    navigator.vibrate?.(100);
-    initAudio();
-    if(sfxOn) playHiss();  // fix #21
-    updateHUD(); updatePurr();
-    if(lives<=0) endGame('no_lives');
-    return;
+    flashFace('scared', 680);
+    const msgs =
+      sound.voiceMode === 'wholesome' ? MISS_MESSAGES_WHOLESOME : MISS_MESSAGES_UNHINGED;
+    showBubble(msgs[missed % msgs.length]);
+    navigator.vibrate?.(90);
+    sound.playHiss();
+    sound.playMissVoice();
+
+    updateHUD();
+    updatePurr();
+    if (selectedMode === 'classic' && lives <= 0) endGame('no_lives');
   }
 
-  // power-up
-  if(obj.fruitType==='powerup'){
-    activatePowerup(obj.powerupType);
-    spawnScorePop(obj.x, obj.y, POWERUPS[obj.powerupType].icon);
-    initAudio();
-    if(sfxOn) playCatchPop();  // fix #21
-    return;
+  // ── Level-Up Fanfare (Fixes Bug #4: clears spawnTimer & levelUpTimer cleanly) ──
+  function triggerLevelUp() {
+    levelFrozen = true;
+    clearTimeout(spawnTimer);
+    clearTimeout(levelUpTimer);
+    flash('rgba(255, 200, 0, 0.32)');
+    sound.playLevelUpWhoosh();
+
+    const ov = document.getElementById('levelUpOverlay');
+    const badge = document.getElementById('levelUpBadge');
+    if (badge) badge.textContent = `⬆️ LEVEL ${levelIdx + 1}!`;
+    ov?.classList.add('show');
+
+    const freezeStart = Date.now();
+    levelUpTimer = setTimeout(() => {
+      ov?.classList.remove('show');
+      levelFrozen = false;
+      lastTs = null;
+      const freezeElapsed = Date.now() - freezeStart;
+      for (const k of Object.keys(activePowerups)) {
+        if (k !== 'shield' && activePowerups[k].endTime) {
+          activePowerups[k].endTime += freezeElapsed;
+        }
+      }
+      if (feverActive) feverEndTime += freezeElapsed;
+      if (gs === 'playing' && !paused) {
+        scheduleSpawn();
+        const hints = ['Faster citrus!', 'More fruit!', 'Hungrier kitten!', 'Watch for lemons!'];
+        showToast(`⬆️ Level ${levelIdx + 1} — ${hints[levelIdx % hints.length]}`, 1900);
+      }
+    }, 480);
   }
 
-  combo++; caught++;
-  if(combo>maxComboThisGame) maxComboThisGame=combo;
-
-  const comboMult = Math.max(1, Math.min(combo, 8));
-  const pts = obj.points * comboMult;
-  score+=pts;
-
-  const cfg2 = getLevelCfg(levelIdx);
-  const refill = cfg2.hungerRefill;  // fix #6: use scaled refill
-  const totalHunger = obj.hungerBonus > 0 ? obj.hungerBonus : refill;
-  hunger=Math.min(100, hunger + totalHunger);
-
-  // chomp animation
-  kittenWrap.classList.remove('chomping');
-  void kittenWrap.offsetWidth;
-  kittenWrap.classList.add('chomping');
-  kittenWrap.addEventListener('animationend',()=>kittenWrap.classList.remove('chomping'),{once:true});
-
-  flashFace('happy',500);
-  showBubble(catchMsgs[caught%catchMsgs.length]);
-  spawnScorePop(obj.x, obj.y, combo>=2?`+${pts} x${Math.min(combo,8)}!`:`+${pts}`);
-  spawnCatchParticles(obj.x, obj.y);
-  if(combo>=2) spawnCombo();
-
-  navigator.vibrate?.(30);
-  initAudio();
-  if(sfxOn) playCatchPop();  // fix #21
-  if(sfxOn) playMeow();  // fix #21
-  speechBiteCount++;
-  if(sfxOn && speechBiteCount%8===0) playThankYouAndDaddy(speechBiteCount);  // fix #21
-
-  // achievements
-  if(caught===1) checkAchievement('first_catch');
-  if(combo>=5)   checkAchievement('combo_x5');
-  if(combo>=8)   checkAchievement('combo_x8');
-  if(obj.fruitType==='golden') checkAchievement('golden_catch');
-  if(caught>=50)  checkAchievement('catches_50');
-  if(caught>=100) checkAchievement('catches_100');
-  if(score>=500)  checkAchievement('score_500');
-
-  // level up?
-  const newLvl=Math.floor(caught/10);
-  if(newLvl>levelIdx){
-    if(missesThisLevel===0 && levelIdx>0) checkAchievement('perfect_level');
-    missesThisLevel=0;
-    levelIdx=newLvl;
-    if(levelIdx>=4) checkAchievement('level_5');
-    if(levelIdx>=9) checkAchievement('level_10');
-    // every 10 levels grant a bonus life (levels 10, 20, 30, ...)
-    if(levelIdx>0 && levelIdx%10===0){
-      lives++;
-      showToast('❤️ Bonus life! Keep going!');
+  // ── Main Game Loop ──
+  function gameLoop(ts) {
+    if (gs !== 'playing' || paused) return;
+    if (levelFrozen) {
+      animFrame = requestAnimationFrame(gameLoop);
+      return;
     }
-    triggerLevelUp();
+
+    const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0;
+    lastTs = ts;
+
+    // 1. Update Kitten Keyboard Movement
+    if (keysHeld.left || keysHeld.right) {
+      const moveSpeed = keysHeld.shift ? 0.95 : 0.58;
+      if (keysHeld.left) kittenRatioX -= moveSpeed * dt;
+      if (keysHeld.right) kittenRatioX += moveSpeed * dt;
+      updateKittenDOMPos();
+    }
+
+    // 2. Fever Mode Expiration Check
+    if (feverActive && Date.now() >= feverEndTime) {
+      feverActive = false;
+      feverCharge = 0;
+      sound.feverActive = false;
+      document.body.classList.remove('fever-mode');
+    }
+
+    // 3. Mode Timers & Hunger Drain
+    const cfg = getLevelCfg(levelIdx, selectedMode);
+    if (selectedMode === 'classic') {
+      const drainMult = feverActive ? 0.5 : 1.0;
+      hunger = Math.max(0, hunger - cfg.hungerDrain * drainMult * dt);
+      if (hunger <= 0) {
+        endGame('starved');
+        return;
+      }
+      if (!eyeTimer && hunger < 25) setFace('sad');
+    } else if (selectedMode === 'blitz') {
+      blitzTimeLeft = Math.max(0, blitzTimeLeft - dt);
+      if (blitzTimeLeft <= 0) {
+        endGame('time_up');
+        return;
+      }
+    }
+
+    if (Math.floor(ts / 150) !== Math.floor((ts - dt * 1000) / 150)) {
+      updatePowerupHud();
+    }
+
+    // 4. Update Falling Fruits (Two-pass collection to avoid mutation during loop)
+    const toCatch = []; // [{ obj, source }]
+    const toMiss = [];
+    const magnetActive = isMagnet();
+    const areaWidth = gameArea?.clientWidth || window.innerWidth;
+    const areaHeight = gameArea?.clientHeight || window.innerHeight - hudOffsetTop;
+    const padding = 38;
+
+    for (let i = oranges.length - 1; i >= 0; i--) {
+      const o = oranges[i];
+      const speedMult = isSlowTime() ? 0.5 : 1;
+      o.speed += o.accel * dt * 30;
+      o.y += o.speed * speedMult * dt;
+
+      // True Magnetic Attraction toward Kitten Mouth (Fixes Bug #5!)
+      if (magnetActive && o.fruitType !== 'lemon' && o.y > areaHeight * 0.18) {
+        const dx = kitCX - o.x;
+        const dy = kitCY - o.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const pullSpeed = 480 * dt;
+        o.x += (dx / dist) * pullSpeed;
+        o.y += (dy / dist) * pullSpeed * 0.65;
+        o.baseX = o.x;
+        if (dist < 62) {
+          toCatch.push({ obj: o, source: 'magnet' });
+          continue;
+        }
+      } else if (o.drift) {
+        // Horizontal sine drift clamped inside screen bounds (Fixes Bug #6!)
+        o.driftPhase = (o.driftPhase || 0) + dt * 1.8;
+        const rawX = o.baseX + Math.sin(o.driftPhase) * 38 * o.drift;
+        o.x = Math.max(padding, Math.min(areaWidth - padding, rawX));
+      }
+
+      o.el.style.left = `${o.x}px`;
+      o.el.style.top = `${o.y}px`;
+
+      // Direct Kitten Mouth / Paw Catch Detection
+      if (o.fruitType !== 'lemon') {
+        const mouthDist = Math.hypot(o.x - kitCX, o.y - kitCY);
+        if (mouthDist < o.radius + 44) {
+          toCatch.push({ obj: o, source: 'mouth' });
+          continue;
+        }
+      }
+
+      if (o.y > areaHeight + 28) {
+        toMiss.push(o);
+      }
+    }
+
+    for (const item of toCatch) {
+      catchOrange(item.obj, item.source);
+    }
+
+    const caughtIds = new Set(toCatch.map((item) => item.obj.id));
+    for (const o of toMiss) {
+      if (caughtIds.has(o.id)) continue;
+      oranges = oranges.filter((x) => x.id !== o.id);
+      missOrange(o);
+      if (gs !== 'playing') break;
+    }
+
+    // 5. Render Canvas FX (Slice Trail & Juice Droplets)
+    fx.updateAndDraw(dt, performance.now(), feverActive);
+
+    updateEyeTracking();
+    updateHUD();
+    updatePurr();
+    animFrame = requestAnimationFrame(gameLoop);
   }
 
-  updateHUD(); updatePurr();
-  lastCatchTime=Date.now();
-}
+  // ── Swipe-to-Slice & Kitten Drag Input Handlers ──
+  gameArea?.addEventListener('pointerdown', (e) => {
+    if (gs !== 'playing' || paused) return;
+    if (kittenWrap && kittenWrap.contains(e.target)) {
+      draggingKitten = true;
+      return;
+    }
+    isSwiping = true;
+    swipeCatchCount = 0;
+    lastSwipePt = { x: e.clientX, y: e.clientY };
+    fx.addTrailPoint(e.clientX, e.clientY);
+  });
 
-function missOrange(obj){
-  if(gs!=='playing') return;  // fix #2: guard against post-endGame calls
-  // don't mutate the array here — caller handles removal by not processing again
-  obj.el.classList.add('missed');
-  obj.el.addEventListener('animationend',()=>obj.el.remove());
+  window.addEventListener('pointermove', (e) => {
+    if (gs !== 'playing' || paused) return;
+    if (draggingKitten) {
+      const w = window.innerWidth || 1;
+      kittenRatioX = e.clientX / w;
+      updateKittenDOMPos();
+      return;
+    }
+    if (!isSwiping) return;
 
-  // letting a lemon go is fine — no penalty
-  if(obj.fruitType==='lemon') return;
+    const curPt = { x: e.clientX, y: e.clientY };
+    fx.addTrailPoint(curPt.x, curPt.y);
 
-  // fix #14: power-up fruits don't penalize on miss
-  if(obj.fruitType==='powerup') return;
+    if (lastSwipePt) {
+      // Convert viewport coordinates to gameArea local coordinates
+      const x1 = lastSwipePt.x;
+      const y1 = lastSwipePt.y - hudOffsetTop;
+      const x2 = curPt.x;
+      const y2 = curPt.y - hudOffsetTop;
 
-  // fix #3: check shield BEFORE incrementing penalty counters
-  if(shieldActive){
-    shieldActive=false;
-    delete activePowerups.shield;
+      const sliced = [];
+      for (const o of oranges) {
+        if (segmentIntersectsCircle(x1, y1, x2, y2, o.x, o.y, o.radius + 14)) {
+          sliced.push(o);
+        }
+      }
+      for (const o of sliced) {
+        catchOrange(o, 'slice');
+        if (o.fruitType !== 'lemon') {
+          swipeCatchCount++;
+          if (swipeCatchCount === 3) {
+            score += 25;
+            checkAchievement('slice_multi');
+            spawnScorePop(o.x, o.y - 20, '⚔️ NINJA SLICE +25!');
+          }
+        }
+      }
+    }
+    lastSwipePt = curPt;
+  });
+
+  window.addEventListener('pointerup', () => {
+    draggingKitten = false;
+    isSwiping = false;
+    lastSwipePt = null;
+    swipeCatchCount = 0;
+  });
+
+  // ── Pause & Resume ──
+  function pauseGame() {
+    if (gs !== 'playing' || paused) return;
+    paused = true;
+    pausedAt = Date.now();
+    cancelAnimationFrame(animFrame);
+    clearTimeout(spawnTimer);
+    clearTimeout(levelUpTimer);
+    sound.pauseSession();
+    if (pauseOverlay) pauseOverlay.style.display = 'flex';
+    if (pauseBtn) pauseBtn.textContent = '▶️';
+  }
+
+  function resumeGame() {
+    if (!paused || gs !== 'playing') return;
+    paused = false;
+    const pausedElapsed = Date.now() - pausedAt;
+    for (const k of Object.keys(activePowerups)) {
+      if (k !== 'shield' && activePowerups[k].endTime) {
+        activePowerups[k].endTime += pausedElapsed;
+      }
+    }
+    if (feverActive) feverEndTime += pausedElapsed;
+    if (pauseOverlay) pauseOverlay.style.display = 'none';
+    if (pauseBtn) pauseBtn.textContent = '⏸️';
+    sound.resumeSession();
+    lastTs = null;
+    scheduleSpawn();
+    animFrame = requestAnimationFrame(gameLoop);
+  }
+
+  function togglePause() {
+    if (paused) resumeGame();
+    else pauseGame();
+  }
+
+  pauseBtn?.addEventListener('click', togglePause);
+  pauseOverlay?.addEventListener('click', resumeGame);
+
+  // ── Start & End Game Lifecycle ──
+  let gameEndScore = 0;
+  let gameEndLevel = 0;
+  let gameEndAccuracy = 0;
+
+  function startGame() {
+    gs = 'playing';
+    score = 0;
+    lives = 3;
+    levelIdx = 0;
+    hunger = 100;
+    blitzTimeLeft = GAME_MODES.blitz.timeLimitSec;
+    combo = 0;
+    caught = 0;
+    missed = 0;
+    mouthCatchesThisGame = 0;
+    speechBiteCount = 0;
+    feverCharge = 0;
+    feverActive = false;
+    document.body.classList.remove('fever-mode');
+
+    oranges.forEach((o) => o.el.remove());
+    oranges = [];
+    lastTs = null;
+    levelFrozen = false;
+    paused = false;
+    prevLives = -1; // Ensures HUD hearts always re-render on new game!
+    displayedScore = 0;
+    if (scoreDisp) scoreDisp.textContent = '0';
+    activePowerups = {};
+    shieldActive = false;
+    maxComboThisGame = 0;
+    missesThisLevel = 0;
+    sessionUnlocks = [];
+    lifetimeCaughtBase = getSessionStats().totalCaught || 0;
+    kittenRatioX = 0.5;
+
+    const startScr = document.getElementById('startScreen');
+    const overScr = document.getElementById('gameOverScreen');
+    const lvlOv = document.getElementById('levelUpOverlay');
+    if (startScr) startScr.style.display = 'none';
+    if (overScr) overScr.style.display = 'none';
+    if (pauseOverlay) pauseOverlay.style.display = 'none';
+    if (lvlOv) lvlOv.classList.remove('show');
+    if (pauseBtn) {
+      pauseBtn.style.display = '';
+      pauseBtn.textContent = '⏸️';
+    }
+    gameArea?.querySelectorAll('.orange-fruit').forEach((el) => el.remove());
+    if (powerupHud) powerupHud.innerHTML = '';
+    hungerVignette?.classList.remove('active');
+    fx.clearTrail();
+
+    applyKittenSkin(selectedSkin);
+    setFace('normal');
+    updateKittenDOMPos();
     updatePowerupHud();
-    checkAchievement('shield_used');
-    showToast('🛡️ Shield absorbed the miss!');
-    flash('rgba(100,200,255,0.4)');
-    return;
+    updateHUD();
+
+    sound.startSession(0);
+    updatePurr();
+    scheduleSpawn();
+    spawnOrange();
+    animFrame = requestAnimationFrame(gameLoop);
+    window.scrollTo?.(0, 0);
   }
 
-  combo=0; missed++; missesThisLevel++;
+  function endGame(reason) {
+    if (gs === 'over') return;
+    gs = 'over';
+    cancelAnimationFrame(animFrame);
+    clearTimeout(spawnTimer);
+    clearTimeout(levelUpTimer);
+    clearTimeout(bubbleTimer);
+    clearTimeout(eyeTimer);
+    clearTimeout(scoreRollTimer);
+    clearTimeout(toastTimer);
+    eyeTimer = null;
+    levelFrozen = false;
+    paused = false;
+    feverActive = false;
+    document.body.classList.remove('fever-mode');
 
-  lives=Math.max(0,lives-1);
-  hunger=Math.max(0, hunger-16);
+    oranges.forEach((o) => o.el.remove());
+    oranges = [];
+    sound.stopSession();
 
-  flash('rgba(200,0,0,0.3)');
-  screenShake();
-  flashFace('scared',700);
-  showBubble(missMsgs[missed%missMsgs.length]);
-  navigator.vibrate?.(100);
-  initAudio();
-  if(sfxOn) playHiss();         // fix #21
-  if(sfxOn) callOutAsshole();   // fix #21
+    if (pauseOverlay) pauseOverlay.style.display = 'none';
+    if (pauseBtn) pauseBtn.style.display = 'none';
+    hungerVignette?.classList.remove('active');
+    shieldActive = false;
+    activePowerups = {};
+    updatePowerupHud();
 
-  updateHUD(); updatePurr();
-  if(lives<=0) endGame('no_lives');
-}
+    const accuracy = caught + missed > 0 ? Math.round((caught / (caught + missed)) * 100) : 0;
+    gameEndScore = score;
+    gameEndLevel = levelIdx + 1;
+    gameEndAccuracy = accuracy;
 
-// ═══════════════════════════════════════════════════════
-//  LEVEL-UP FANFARE
-// ═══════════════════════════════════════════════════════
-function triggerLevelUp(){
-  // pause the game loop for 500ms
-  levelFrozen=true;
-  flash('rgba(255,200,0,0.35)');
-  playLevelUpWhoosh();
-
-  const ov = document.getElementById('levelUpOverlay');
-  const badge = document.getElementById('levelUpBadge');
-  badge.textContent = `⬆️ LEVEL ${levelIdx+1}!`;
-  ov.classList.add('show');
-
-  const freezeStart = Date.now();
-  setTimeout(()=>{
-    ov.classList.remove('show');
-    levelFrozen=false;
-    lastTs=null;  // fix #4: prevent dt spike after freeze
-    // Fix D: compensate power-up endTimes for level-up freeze duration
-    const freezeElapsed = Date.now() - freezeStart;
-    for(const k of Object.keys(activePowerups)){
-      if(k!=='shield' && activePowerups[k].endTime) activePowerups[k].endTime += freezeElapsed;
-    }
-    // Fix N: difficulty preview toast
-    const hints = ['Faster!', 'More fruit!', 'Hungrier kitten!', 'Watch for lemons!'];
-    showToast(`⬆️ Level ${levelIdx+1} — ${hints[levelIdx % hints.length]}`, 2000);
-  }, 500);
-}
-
-// fix #16: cached kitten position (avoids getBoundingClientRect in hot loop)
-let kitCX=0, kitCY=0;
-function cacheKittenPos(){
-  const kitRect = kittenWrap.getBoundingClientRect();
-  kitCX = kitRect.left + kitRect.width*0.44;
-  kitCY = kitRect.top  + kitRect.height*0.40;
-}
-
-// ═══════════════════════════════════════════════════════
-//  GAME LOOP
-// ═══════════════════════════════════════════════════════
-function gameLoop(ts){
-  if(gs!=='playing') return;
-  if(levelFrozen){ animFrame=requestAnimationFrame(gameLoop); return; }
-
-  const dt=lastTs?Math.min((ts-lastTs)/1000, 0.05):0;
-  lastTs=ts;
-
-  const cfg=getLevelCfg(levelIdx);
-  hunger=Math.max(0, hunger - cfg.hungerDrain*dt);
-  if(hunger<=0){ endGame('starved'); return; }
-
-  // hunger-based face when not eating
-  if(!eyeTimer && hunger<25) setFace('sad');
-
-  // update power-up HUD periodically
-  if(Math.floor(ts/200) !== Math.floor((ts-dt*1000)/200)) updatePowerupHud();
-
-  // fix #1: two-pass approach — store objects by ref, not indices
-  const toCatch=[], toMiss=[];
-  const magnetActive = isMagnet();
-  const kittenBottom = window.innerHeight - 160;
-
-  for(let i=oranges.length-1;i>=0;i--){
-    const o=oranges[i];
-    const speedMult = isSlowTime() ? 0.5 : 1;
-    o.speed += o.accel * dt * 30; // gradual acceleration
-    o.y += o.speed * speedMult * dt;
-
-    // horizontal drift (sine wave)
-    if(o.drift){
-      o.driftPhase = (o.driftPhase||0) + dt * 1.8;
-      o.x = o.baseX + Math.sin(o.driftPhase) * 40 * o.drift;
-      o.el.style.left=o.x+'px';
+    const prevBest = best;
+    if (score > best) {
+      best = setBestScore(score);
+      if (bestDisp) bestDisp.textContent = String(best);
     }
 
-    o.el.style.top=o.y+'px';
-
-    // fix #1: collect magnet catches — don't call catchOrange here
-    if(magnetActive && o.fruitType!=='lemon' && o.y > kittenBottom - 80){
-      toCatch.push(o);
-      continue;
-    }
-
-    if(o.y>window.innerHeight+20) toMiss.push(o);
-  }
-
-  // fix #1: execute catches after loop (catchOrange replaces oranges array via filter)
-  for(const o of toCatch){ catchOrange(o); }
-
-  // process misses — filter out any already caught by magnet above
-  const caughtIds = new Set(toCatch.map(o=>o.id));
-  for(const o of toMiss){
-    if(caughtIds.has(o.id)) continue;  // already caught by magnet
-    oranges = oranges.filter(x=>x.id!==o.id);
-    missOrange(o);
-    if(gs!=='playing') break;  // fix #2: stop if endGame was triggered
-  }
-
-  updateEyeTracking();
-  updateHUD(); updatePurr();
-  animFrame=requestAnimationFrame(gameLoop);
-}
-
-// ═══════════════════════════════════════════════════════
-//  PAUSE
-// ═══════════════════════════════════════════════════════
-function pauseGame(){
-  if(gs!=='playing' || paused) return;
-  paused=true;
-  pausedAt=Date.now();
-  cancelAnimationFrame(animFrame);
-  clearTimeout(spawnTimer);
-  if(audioCtx) audioCtx.suspend();
-  document.getElementById('pauseOverlay').style.display='flex';
-  document.getElementById('pauseBtn').textContent='▶️';
-}
-
-function resumeGame(){
-  if(!paused) return;
-  paused=false;
-  // Fix D: compensate power-up endTimes for time spent paused
-  const pausedElapsed = Date.now() - pausedAt;
-  for(const k of Object.keys(activePowerups)){
-    if(k!=='shield' && activePowerups[k].endTime) activePowerups[k].endTime += pausedElapsed;
-  }
-  document.getElementById('pauseOverlay').style.display='none';
-  document.getElementById('pauseBtn').textContent='⏸️';
-  if(audioCtx) audioCtx.resume();
-  lastTs=null;  // prevent dt spike after pause
-  scheduleSpawn();
-  animFrame=requestAnimationFrame(gameLoop);
-}
-
-function togglePause(){
-  if(paused) resumeGame(); else pauseGame();
-}
-
-document.getElementById('pauseBtn').addEventListener('click', togglePause);
-
-// ═══════════════════════════════════════════════════════
-//  START / END
-// ═══════════════════════════════════════════════════════
-function startGame(){
-  gs='playing'; score=0; lives=3; levelIdx=0; hunger=100;
-  combo=0; caught=0; missed=0; speechBiteCount=0;
-  oranges=[]; lastTs=null; lastCatchTime=null;
-  levelFrozen=false; paused=false;
-  prevLives=3;
-  displayedScore=0; scoreDisp.textContent='0';
-  activePowerups={}; shieldActive=false;
-  maxComboThisGame=0; missesThisLevel=0;
-  musicScheduled=false; musicStep=0;  // fix #18: reset music state between games
-  sessionUnlocks=[];
-  document.getElementById('startScreen').style.display='none';
-  document.getElementById('gameOverScreen').style.display='none';
-  document.getElementById('pauseOverlay').style.display='none';
-  document.getElementById('pauseBtn').style.display='';
-  document.getElementById('pauseBtn').textContent='⏸️';
-  gameArea.querySelectorAll('.orange-fruit').forEach(el=>el.remove());
-  powerupHud.innerHTML='';
-  hungerVignette.classList.remove('active');
-  setFace('normal');
-  updateHUD(); updatePurr();
-  initAudio();
-  cacheKittenPos();  // fix #16: prime kitten position cache
-  scheduleSpawn();
-  spawnOrange();
-  animFrame=requestAnimationFrame(gameLoop);
-  window.scrollTo(0,0);  // fix #24
-}
-
-let gameEndScore=0, gameEndLevel=0, gameEndAccuracy=0;
-
-function endGame(reason){
-  gs='over';
-  cancelAnimationFrame(animFrame);
-  clearTimeout(spawnTimer);
-  clearTimeout(musicTimeout);
-  clearTimeout(bubbleTimer);     // fix #7: clear all hanging timers
-  clearTimeout(eyeTimer);        // fix #7
-  clearTimeout(scoreRollTimer);  // fix #7
-  clearTimeout(toastTimer);      // fix #7
-  eyeTimer=null;
-  speechBusy=false;              // fix #7
-  paused=false;
-  if('speechSynthesis' in window) speechSynthesis.cancel();
-  oranges.forEach(o=>o.el.remove()); oranges=[];
-  if(audioCtx){
-    masterGain?.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-    if(musicGain) musicGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-    setTimeout(() => { if(audioCtx) audioCtx.suspend(); }, 400);
-  }
-  document.getElementById('pauseOverlay').style.display='none';
-  document.getElementById('pauseBtn').style.display='none';
-  hungerVignette.classList.remove('active');
-
-  const accuracy = caught+missed>0 ? Math.round(caught/(caught+missed)*100) : 0;
-  gameEndScore=score; gameEndLevel=levelIdx+1; gameEndAccuracy=accuracy;
-
-  const prevBest = best;
-  if(score > best){
-    best = score;
-    try{ localStorage.setItem('citrus_best', best); }catch(e){}  // fix #9
-    bestDisp.textContent = best;
-  }
-
-  // leaderboard
-  const lb = addLeaderboardEntry({ score, level:levelIdx+1, accuracy, date:Date.now() });
-
-  // session stats
-  updateSessionStats({ caught, bestCombo:maxComboThisGame, accuracy });
-
-  let title = reason==='starved'?'😿 The kitten starved!':'💔 No lives left!';
-  if(score > 0 && score > prevBest){
-    title = '🏆 NEW HIGH SCORE!';
-    showToast('🎉 New record: ' + score + ' points!');
-  }
-  document.getElementById('gameOverTitle').textContent=title;
-  document.getElementById('gameOverStats').innerHTML=`
-    <span>Score</span><b>${score}</b>
-    <span>Best</span><b>${best}</b>
-    <span>Level reached</span><b>${levelIdx+1}</b>
-    <span>Oranges caught</span><b>${caught}</b>
-    <span>Oranges missed</span><b>${missed}</b>
-    <span>Accuracy</span><b>${accuracy}%</b>
-    <span>Best combo</span><b>x${maxComboThisGame}</b>
-  `;
-
-  renderLeaderboard(lb, document.getElementById('gameOverLeaderboard'));
-
-  const achEl = document.getElementById('gameOverAchievements');
-  if(sessionUnlocks.length>0){
-    const defs = sessionUnlocks.map(id=>ACHIEVEMENT_DEFS.find(d=>d.id===id)).filter(Boolean);
-    achEl.innerHTML = '<div style="font-size:0.9rem;color:#b85c00;margin-top:4px;">Unlocked this game: '+
-      defs.map(d=>`${d.icon} ${d.label}`).join(' · ')+'</div>';
-  } else {
-    achEl.innerHTML='';
-  }
-
-  setFace('sad');
-  const goScreen = document.getElementById('gameOverScreen');
-  goScreen.classList.remove('overlay-enter');
-  void goScreen.offsetWidth; // force reflow to restart animation
-  goScreen.classList.add('overlay-enter');
-  goScreen.style.display='flex';
-
-  // Sad speech — gated by sfxOn (fix #21)
-  if(sfxOn && 'speechSynthesis' in window){
-    setTimeout(()=>{
-      const u=new SpeechSynthesisUtterance(
-        reason==='starved'?'i am so hungry. why did you fail me.':'you let them all fall. asshole.'
-      );
-      u.pitch=0; u.rate=0.5; u.volume=0.9;
-      speechSynthesis.speak(u);
-    },400);
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  SHARE BUTTON
-// ═══════════════════════════════════════════════════════
-document.getElementById('shareBtn').addEventListener('click', ()=>{
-  const text = `🍊 Citrus Kitten: I scored ${gameEndScore} points (Level ${gameEndLevel}, ${gameEndAccuracy}% accuracy)! Can you beat me?`;
-  if(navigator.share){
-    navigator.share({ title: 'Citrus Kitten', text }).catch(()=>{});
-  } else {
-    navigator.clipboard?.writeText(text).then(()=>{
-      showToast('📋 Score copied to clipboard!');
-    }).catch(()=>{
-      showToast('📋 ' + text);
+    const lb = addLeaderboardEntry({
+      score,
+      level: levelIdx + 1,
+      accuracy,
+      mode: selectedMode,
+      date: Date.now(),
     });
-  }
-});
 
-// ═══════════════════════════════════════════════════════
-//  KEYBOARD CONTROLS (fix #20)
-// ═══════════════════════════════════════════════════════
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape' || e.key==='p' || e.key==='P'){
-    if(gs==='playing') togglePause();
-  }
-  if(e.key===' ' || e.key==='Enter'){
-    if(gs==='start'){
-      e.preventDefault();
-      startGame();
-    } else if(gs==='over'){
-      e.preventDefault();
-      initStartScreen();
-      startGame();
+    updateSessionStats({
+      score,
+      caught,
+      bestCombo: maxComboThisGame,
+      accuracy,
+    });
+
+    let title =
+      reason === 'starved'
+        ? '😿 The kitten starved!'
+        : reason === 'time_up'
+        ? '⏱️ Time is up!'
+        : '💔 No lives left!';
+    if (score > 0 && score > prevBest) {
+      title = '🏆 NEW HIGH SCORE!';
+      showToast(`🎉 New record: ${score} points!`);
     }
+
+    const goTitle = document.getElementById('gameOverTitle');
+    if (goTitle) goTitle.textContent = title;
+
+    const goStats = document.getElementById('gameOverStats');
+    if (goStats) {
+      goStats.innerHTML = `
+        <span>Mode</span><b>${GAME_MODES[selectedMode].icon} ${GAME_MODES[selectedMode].name}</b>
+        <span>Score</span><b>${score}</b>
+        <span>Best</span><b>${best}</b>
+        <span>Level reached</span><b>${levelIdx + 1}</b>
+        <span>Citrus caught</span><b>${caught}</b>
+        <span>Citrus missed</span><b>${missed}</b>
+        <span>Accuracy</span><b>${accuracy}%</b>
+        <span>Best combo</span><b>x${Math.min(8, maxComboThisGame)} (${maxComboThisGame})</b>
+      `;
+    }
+
+    renderLeaderboardUI(lb, document.getElementById('gameOverLeaderboard'));
+
+    const achEl = document.getElementById('gameOverAchievements');
+    if (achEl) {
+      if (sessionUnlocks.length > 0) {
+        const defs = sessionUnlocks
+          .map((id) => ACHIEVEMENT_DEFS.find((d) => d.id === id))
+          .filter(Boolean);
+        achEl.innerHTML =
+          '<div style="font-size:0.9rem;color:#b85c00;margin-top:4px;">Unlocked this game: ' +
+          defs.map((d) => `${d.icon} ${d.label}`).join(' · ') +
+          '</div>';
+      } else {
+        achEl.innerHTML = '';
+      }
+    }
+
+    setFace('sad');
+    const goScreen = document.getElementById('gameOverScreen');
+    if (goScreen) {
+      goScreen.classList.remove('overlay-enter');
+      void goScreen.offsetWidth;
+      goScreen.classList.add('overlay-enter');
+      goScreen.style.display = 'flex';
+    }
+
+    sound.playGameOverVoice(reason);
   }
-});
 
-// Fix B: auto-pause when tab is hidden to prevent time-warp on return
-document.addEventListener('visibilitychange', ()=>{
-  if(document.hidden && gs==='playing' && !paused) pauseGame();
-});
+  // ── Share Button ──
+  document.getElementById('shareBtn')?.addEventListener('click', () => {
+    const modeName = GAME_MODES[selectedMode]?.name || 'Classic';
+    const text = `🍊 Citrus Kitten (${modeName}): I scored ${gameEndScore} points (Level ${gameEndLevel}, ${gameEndAccuracy}% accuracy)! Can you beat me?`;
+    if (navigator.share) {
+      navigator.share({ title: 'Citrus Kitten', text }).catch(() => {});
+    } else if (navigator.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => showToast('📋 Score copied to clipboard!'))
+        .catch(() => showToast('📋 ' + text));
+    } else {
+      showToast('📋 ' + text);
+    }
+  });
 
-// fix #16: re-cache kitten position on window resize
-window.addEventListener('resize', ()=>{
-  if(gs==='playing') cacheKittenPos();
-});
+  // ── Keyboard & Window Event Listeners ──
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keysHeld.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keysHeld.right = true;
+    if (e.key === 'Shift') keysHeld.shift = true;
 
-// ═══════════════════════════════════════════════════════
-//  INIT START SCREEN
-// ═══════════════════════════════════════════════════════
-function initStartScreen(){
-  document.getElementById('startBest').textContent = best;
-  renderLeaderboard(getLeaderboard(), document.getElementById('startLeaderboard'));
-  renderAchievements(document.getElementById('startAchievements'));
-  renderSessionStats();
-}
-initStartScreen();
+    if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+      if (gs === 'playing') togglePause();
+    }
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (gs === 'start') {
+        e.preventDefault();
+        startGame();
+      } else if (gs === 'over') {
+        e.preventDefault();
+        initStartScreen();
+        startGame();
+      }
+    }
+  });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', ()=>{
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keysHeld.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keysHeld.right = false;
+    if (e.key === 'Shift') keysHeld.shift = false;
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && gs === 'playing' && !paused) pauseGame();
+  });
+
+  window.addEventListener('resize', () => {
+    fx.resize();
+    if (gs === 'playing') cacheKittenPos();
+  });
+
+  // ── Start / Menu Screen Initialization ──
+  function initStartScreen() {
+    const sb = document.getElementById('startBest');
+    if (sb) sb.textContent = String(best);
+    applyKittenSkin(selectedSkin);
+    renderModeSelector();
+    renderWardrobe();
+    renderLeaderboardUI(getLeaderboard(), document.getElementById('startLeaderboard'));
+    renderAchievementsUI(document.getElementById('startAchievements'));
+    renderSessionStatsUI();
+  }
+
   initStartScreen();
-  startGame();
-});
+
+  document.getElementById('startBtn')?.addEventListener('click', startGame);
+  document.getElementById('restartBtn')?.addEventListener('click', () => {
+    initStartScreen();
+    startGame();
+  });
+  document.getElementById('menuBtn')?.addEventListener('click', () => {
+    gs = 'start';
+    const goScreen = document.getElementById('gameOverScreen');
+    const startScr = document.getElementById('startScreen');
+    if (goScreen) goScreen.style.display = 'none';
+    if (startScr) startScr.style.display = 'flex';
+    initStartScreen();
+  });
+
+  return {
+    startGame,
+    endGame,
+    pauseGame,
+    resumeGame,
+    catchOrange,
+    missOrange,
+    spawnOrange,
+    getState: () => ({
+      gs,
+      score,
+      lives,
+      levelIdx,
+      hunger,
+      combo,
+      caught,
+      missed,
+      selectedMode,
+      selectedSkin,
+      shieldActive,
+      feverActive,
+      oranges,
+    }),
+  };
+}
+
+  window.citrusApp = initCitrusKittenApp();
+
+})();
 </script>
 </body>
 </html>
