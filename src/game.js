@@ -933,7 +933,7 @@ export function initCitrusKittenApp() {
     sound.playMeow(combo);
 
     speechBiteCount++;
-    if (speechBiteCount % 5 === 0) {
+    if (speechBiteCount % 8 === 0) {
       sound.playBiteVoice(speechBiteCount);
     }
 

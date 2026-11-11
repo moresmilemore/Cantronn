@@ -24,7 +24,15 @@ export function buildProject() {
   const template = fs.readFileSync(path.join(srcDir, 'template.html'), 'utf8');
   const css = fs.readFileSync(path.join(srcDir, 'styles.css'), 'utf8');
 
-  const jsModules = ['config.js', 'storage.js', 'assets.js', 'audio.js', 'fx.js', 'game.js'];
+  const jsModules = [
+    'config.js',
+    'storage.js',
+    'assets.js',
+    'voice-bank.js',
+    'audio.js',
+    'fx.js',
+    'game.js',
+  ];
   const bundledJsParts = jsModules.map((file) => {
     const raw = fs.readFileSync(path.join(srcDir, file), 'utf8');
     return `// ── Module: ${file} ──\n` + stripModuleSyntax(raw).trim();

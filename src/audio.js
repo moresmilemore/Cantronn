@@ -1,15 +1,30 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  CITRUS KITTEN (CANTRONN) — WEB AUDIO SYNTH & EXPRESSIVE VOICE ENGINE
+//  CITRUS KITTEN (CANTRONN) — WEB AUDIO SYNTH & STUDIO VOICE SAMPLE ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
+
+import { VOICE_BANK } from './voice-bank.js';
 
 const PENTA_NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C4 Pentatonic
 const FEVER_NOTES = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50]; // C5 Pentatonic
 const BASE_BEAT_DUR = 60 / 106;
 const MAX_PURR_VOL = 0.22;
 
-// Novelty/broken system voices on macOS/browsers to exclude
-const NOVELTY_VOICE_RE =
-  /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|organ|trinoids|whisper|zarvox|jester|wobble|superstar/i;
+function base64ToArrayBuffer(b64) {
+  if (typeof atob === 'function') {
+    const bin = atob(b64);
+    const len = bin.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = bin.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+  if (typeof Buffer !== 'undefined') {
+    const buf = Buffer.from(b64, 'base64');
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  }
+  return new ArrayBuffer(0);
+}
 
 export class SoundEngine {
   constructor(initialSettings = {}) {
@@ -17,6 +32,7 @@ export class SoundEngine {
     this.purrGain = null;
     this.musicGain = null;
     this.sfxGain = null;
+    this.voiceGain = null;
     this.audioInited = false;
 
     this.musicOn = initialSettings.musicOn !== false;
@@ -34,18 +50,23 @@ export class SoundEngine {
 
     this.speechBusy = false;
     this.speechSafetyTimer = null;
+    this.secondPhraseTimer = null;
+    this.activeVoiceSources = new Set();
     this.lastMeowTime = 0;
-    this.cachedVoices = [];
+    this.meowCursor = 0;
+    this.tyCursor = 0;
+    this.ydCursor = 0;
+    this.missCursor = 0;
 
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const loadVoices = () => {
-        try {
-          this.cachedVoices = window.speechSynthesis.getVoices() || [];
-        } catch (e) {}
-      };
-      loadVoices();
-      window.speechSynthesis.addEventListener?.('voiceschanged', loadVoices);
-    }
+    // Decoded Web Audio buffers from VOICE_BANK
+    this.buffersDecoded = false;
+    this.buffers = {
+      meows: [],
+      thankYou: [],
+      yesDaddy: [],
+      miss: [],
+      gameOver: {},
+    };
   }
 
   init() {
@@ -53,6 +74,9 @@ export class SoundEngine {
     if (this.audioInited && this.audioCtx) {
       if (this.audioCtx.state === 'suspended') {
         this.audioCtx.resume().catch(() => {});
+      }
+      if (!this.buffersDecoded) {
+        this.decodeVoiceBank();
       }
       return;
     }
@@ -114,7 +138,70 @@ export class SoundEngine {
     this.sfxGain.gain.setValueAtTime(this.sfxOn ? 1.0 : 0, ctx.currentTime);
     this.sfxGain.connect(ctx.destination);
 
+    // 4. Dedicated Studio Voice Bus (warm low-shelf chest body + smooth silk top)
+    this.voiceGain = ctx.createGain();
+    this.voiceGain.gain.setValueAtTime(1.0, ctx.currentTime);
+
+    const chestShelf = ctx.createBiquadFilter();
+    chestShelf.type = 'lowshelf';
+    chestShelf.frequency.value = 160;
+    chestShelf.gain.value = 2.8;
+
+    const silkFilter = ctx.createBiquadFilter();
+    silkFilter.type = 'lowpass';
+    silkFilter.frequency.value = 7400;
+    silkFilter.Q.value = 0.7;
+
+    this.voiceGain.connect(chestShelf);
+    chestShelf.connect(silkFilter);
+    silkFilter.connect(this.sfxGain);
+
     this.audioInited = true;
+    this.decodeVoiceBank();
+  }
+
+  async decodeClip(b64) {
+    if (!this.audioCtx || typeof this.audioCtx.decodeAudioData !== 'function') return null;
+    try {
+      const ab = base64ToArrayBuffer(b64);
+      if (!ab || ab.byteLength === 0) return null;
+      return await this.audioCtx.decodeAudioData(ab.slice(0));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async decodeVoiceBank() {
+    if (this.buffersDecoded || !this.audioCtx || !VOICE_BANK) return;
+    this.buffersDecoded = true;
+    try {
+      const decodeList = async (arr) => {
+        const out = [];
+        for (const item of arr || []) {
+          const decoded = await this.decodeClip(item);
+          if (decoded) out.push(decoded);
+        }
+        return out;
+      };
+
+      const [meows, thankYou, yesDaddy, miss, starved, noLives] = await Promise.all([
+        decodeList(VOICE_BANK.meows),
+        decodeList(VOICE_BANK.thankYou),
+        decodeList(VOICE_BANK.yesDaddy),
+        decodeList(VOICE_BANK.miss),
+        VOICE_BANK.gameOver?.starved ? this.decodeClip(VOICE_BANK.gameOver.starved) : null,
+        VOICE_BANK.gameOver?.no_lives ? this.decodeClip(VOICE_BANK.gameOver.no_lives) : null,
+      ]);
+
+      if (meows.length) this.buffers.meows = meows;
+      if (thankYou.length) this.buffers.thankYou = thankYou;
+      if (yesDaddy.length) this.buffers.yesDaddy = yesDaddy;
+      if (miss.length) this.buffers.miss = miss;
+      if (starved) this.buffers.gameOver.starved = starved;
+      if (noLives) this.buffers.gameOver.no_lives = noLives;
+    } catch (e) {
+      // Safe fallback to procedural synth if AudioContext decoding is unavailable
+    }
   }
 
   startSession(levelIdx = 0) {
@@ -169,6 +256,7 @@ export class SoundEngine {
     this.feverActive = false;
     clearTimeout(this.musicTimeout);
     clearTimeout(this.speechSafetyTimer);
+    clearTimeout(this.secondPhraseTimer);
     this.speechBusy = false;
     this.cancelSpeech();
 
@@ -181,7 +269,7 @@ export class SoundEngine {
         if (!this.isPlaying && this.audioCtx && this.audioCtx.state === 'running') {
           this.audioCtx.suspend().catch(() => {});
         }
-      }, 380);
+      }, 650);
     }
   }
 
@@ -289,73 +377,64 @@ export class SoundEngine {
     this.purrGain.gain.setTargetAtTime(target, this.audioCtx.currentTime, 0.45);
   }
 
-  // ── Expressive Procedural Cat Vocalizations & SFX ──
+  // ── Real Recorded Kitten Meows & Crisp Arcade SFX ──
 
   playMeow(combo = 1) {
     if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
     const ctx = this.audioCtx;
     const now = ctx.currentTime;
-    // Throttle rapid meows during multi-slice so oscillators don't clash
-    if (now - this.lastMeowTime < 0.16) return;
+    if (now - this.lastMeowTime < 0.14) return;
     this.lastMeowTime = now;
 
-    // Dual-formant expressive cat chirp/mew
-    const pattern = Math.floor(Math.random() * 3);
-    const root = 520 + Math.min(combo * 18, 160) + (Math.random() - 0.5) * 70;
-    const dur = pattern === 0 ? 0.34 : pattern === 1 ? 0.46 : 0.4;
+    // Play real recorded kitten meow buffer when decoded
+    if (this.buffers.meows.length > 0) {
+      const buf = this.buffers.meows[this.meowCursor % this.buffers.meows.length];
+      this.meowCursor++;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const rate = 0.96 + Math.min(combo, 8) * 0.014 + (Math.random() - 0.5) * 0.05;
+      src.playbackRate.setValueAtTime(rate, now);
 
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-
-    if (pattern === 0) {
-      // Quick happy "mrrp!" upward chirp
-      osc.frequency.setValueAtTime(root * 0.72, now);
-      osc.frequency.exponentialRampToValueAtTime(root * 1.38, now + 0.14);
-      osc.frequency.exponentialRampToValueAtTime(root * 1.05, now + dur);
-    } else if (pattern === 1) {
-      // Classic melodic "me-ow~" arc
-      osc.frequency.setValueAtTime(root * 0.85, now);
-      osc.frequency.exponentialRampToValueAtTime(root * 1.42, now + 0.13);
-      osc.frequency.exponentialRampToValueAtTime(root * 0.76, now + 0.36);
-      osc.frequency.linearRampToValueAtTime(root * 0.65, now + dur);
-    } else {
-      // Cute double "mew-mew!" bounce
-      osc.frequency.setValueAtTime(root * 0.9, now);
-      osc.frequency.exponentialRampToValueAtTime(root * 1.3, now + 0.1);
-      osc.frequency.setValueAtTime(root * 0.95, now + 0.18);
-      osc.frequency.exponentialRampToValueAtTime(root * 1.45, now + 0.3);
-      osc.frequency.exponentialRampToValueAtTime(root * 0.88, now + dur);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.46, now);
+      src.connect(g);
+      g.connect(this.sfxGain);
+      src.start(now);
+      src.onended = () => {
+        src.disconnect();
+        g.disconnect();
+      };
+      return;
     }
 
-    // Vowel formant filter (transitions from "ee" to "ah/oh")
-    const formant1 = ctx.createBiquadFilter();
-    formant1.type = 'bandpass';
-    formant1.frequency.setValueAtTime(1100, now);
-    formant1.frequency.exponentialRampToValueAtTime(1650, now + dur * 0.35);
-    formant1.frequency.exponentialRampToValueAtTime(850, now + dur);
-    formant1.Q.value = 4.2;
+    // Soft warm triangle fallback if audio buffers are still decoding on frame 1
+    const root = 500 + Math.random() * 120;
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(root * 0.78, now);
+    osc.frequency.linearRampToValueAtTime(root * 1.28, now + 0.11);
+    osc.frequency.linearRampToValueAtTime(root * 0.68, now + 0.34);
 
-    const lpf = ctx.createBiquadFilter();
-    lpf.type = 'lowpass';
-    lpf.frequency.value = 2600;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.setValueAtTime(920, now);
+    filt.frequency.linearRampToValueAtTime(1320, now + 0.11);
+    filt.frequency.linearRampToValueAtTime(760, now + 0.34);
+    filt.Q.value = 2.8;
 
     const env = ctx.createGain();
     env.gain.setValueAtTime(0.001, now);
-    env.gain.linearRampToValueAtTime(0.28, now + 0.035);
-    env.gain.setValueAtTime(0.26, now + dur * 0.45);
-    env.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    env.gain.linearRampToValueAtTime(0.26, now + 0.03);
+    env.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
 
-    osc.connect(formant1);
-    formant1.connect(lpf);
-    lpf.connect(env);
+    osc.connect(filt);
+    filt.connect(env);
     env.connect(this.sfxGain);
-
     osc.start(now);
-    osc.stop(now + dur + 0.02);
+    osc.stop(now + 0.38);
     osc.onended = () => {
       osc.disconnect();
-      formant1.disconnect();
-      lpf.disconnect();
+      filt.disconnect();
       env.disconnect();
     };
   }
@@ -366,7 +445,6 @@ export class SoundEngine {
     const now = ctx.currentTime;
     const pitchMult = 1 + Math.min(combo, 8) * 0.055;
 
-    // Crisp juicy pop transient
     const osc = ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(520 * pitchMult, now);
@@ -489,199 +567,193 @@ export class SoundEngine {
     if (!this.sfxOn || !this.audioCtx || !this.sfxGain) return;
     const ctx = this.audioCtx;
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(680, now);
-    osc.frequency.exponentialRampToValueAtTime(190, now + 0.42);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.24, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
-    osc.connect(g);
-    g.connect(this.sfxGain);
-    osc.start(now);
-    osc.stop(now + 0.5);
-    osc.onended = () => {
-      osc.disconnect();
-      g.disconnect();
+    const dur = 0.34;
+    const bufLen = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const t = i / bufLen;
+      const envShape = t < 0.08 ? t / 0.08 : Math.pow(1 - (t - 0.08) / 0.92, 1.4);
+      data[i] = (Math.random() * 2 - 1) * envShape;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(3600, now);
+    bp.frequency.exponentialRampToValueAtTime(2100, now + dur);
+    bp.Q.value = 1.5;
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.28, now);
+    env.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    noise.connect(bp);
+    bp.connect(env);
+    env.connect(this.sfxGain);
+    noise.start(now);
+    noise.stop(now + dur + 0.02);
+    noise.onended = () => {
+      noise.disconnect();
+      bp.disconnect();
+      env.disconnect();
     };
   }
 
-  // ── Smart Voice Selection & Natural Speech Synthesis ──
+  // ── Studio Voice Buffer Playback Engine (No Robotic Browser speechSynthesis) ──
 
   cancelSpeech() {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    clearTimeout(this.secondPhraseTimer);
+    clearTimeout(this.speechSafetyTimer);
+    this.speechBusy = false;
+    for (const src of this.activeVoiceSources) {
+      try {
+        src.onended = null;
+        src.stop();
+        src.disconnect();
+      } catch (e) {}
     }
+    this.activeVoiceSources.clear();
   }
 
-  pickBestVoice(style = 'unhinged') {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-    const allVoices =
-      this.cachedVoices.length > 0
-        ? this.cachedVoices
-        : window.speechSynthesis.getVoices() || [];
-    if (!allVoices.length) return null;
-
-    // Filter to English voices and exclude broken/novelty voices
-    const englishVoices = allVoices.filter(
-      (v) => /^en(-|_|$)/i.test(v.lang || '') && !NOVELTY_VOICE_RE.test(v.name || '')
-    );
-    const pool = englishVoices.length > 0 ? englishVoices : allVoices;
-
-    if (style === 'wholesome') {
-      // Prefer natural, bright, expressive voices
-      const preferredWholesome = [
-        /natural|neural|premium|enhanced/i,
-        /samantha|ava|allison|victoria|karen|moira|tessa|google us english/i,
-      ];
-      for (const regex of preferredWholesome) {
-        const match = pool.find((v) => regex.test(v.name));
-        if (match) return match;
-      }
-      return pool.find((v) => v.default) || pool[0];
-    }
-
-    // For 'unhinged': prefer clear, deadpan, resonant voices
-    const preferredDeadpan = [
-      /daniel|alex|arthur|oliver|aaron|rishi|google uk english male|reed|evan|nathan/i,
-      /natural|neural|premium|enhanced/i,
-      /samantha|google us english/i,
-    ];
-    for (const regex of preferredDeadpan) {
-      const match = pool.find((v) => regex.test(v.name));
-      if (match) return match;
-    }
-    return pool.find((v) => v.default) || pool[0];
-  }
-
-  speakIt(text, pitchV = 1.0, rateV = 1.0, style = this.voiceMode) {
-    if (!this.sfxOn || this.voiceMode === 'off') return null;
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
-    try {
-      const u = new SpeechSynthesisUtterance(text);
-      const chosenVoice = this.pickBestVoice(style);
-      if (chosenVoice) u.voice = chosenVoice;
-      // Keep pitch & rate in the clean, natural, non-garbled sweet spot
-      u.pitch = Math.max(0.55, Math.min(1.45, pitchV));
-      u.rate = Math.max(0.78, Math.min(1.25, rateV));
-      u.volume = 0.92;
-      window.speechSynthesis.speak(u);
-      return u;
-    } catch (e) {
+  playVoiceBuffer(buf, rate = 1.0, volume = 0.95, onComplete = null) {
+    if (!buf || !this.audioCtx || !this.voiceGain || !this.sfxOn || this.voiceMode === 'off') {
+      onComplete?.();
       return null;
     }
+    const ctx = this.audioCtx;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.setValueAtTime(Math.max(0.76, Math.min(1.25, rate)), now);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(volume, now);
+
+    src.connect(g);
+    g.connect(this.voiceGain);
+
+    this.activeVoiceSources.add(src);
+    src.onended = () => {
+      this.activeVoiceSources.delete(src);
+      src.disconnect();
+      g.disconnect();
+      onComplete?.();
+    };
+    src.start(now);
+    return src;
   }
 
-  playBiteVoice(biteCount) {
+  playBiteVoice(biteCount = 8) {
     if (!this.sfxOn || this.voiceMode === 'off' || this.speechBusy) return;
+    if (!this.audioCtx) return;
+
+    // Wholesome mode: play an adorable real kitten double-meow chirp instead of TTS
+    if (this.voiceMode === 'wholesome') {
+      if (this.buffers.meows.length > 0) {
+        this.speechBusy = true;
+        const b1 = this.buffers.meows[this.meowCursor % this.buffers.meows.length];
+        const b2 = this.buffers.meows[(this.meowCursor + 1) % this.buffers.meows.length];
+        this.meowCursor += 2;
+        this.playVoiceBuffer(b1, 1.08, 0.55, () => {
+          this.secondPhraseTimer = setTimeout(() => {
+            this.playVoiceBuffer(b2, 1.18, 0.58, () => {
+              this.speechBusy = false;
+            });
+          }, 55);
+        });
+      }
+      return;
+    }
+
+    // Unhinged mode: studio-recorded deep baritone two-part "Thank you... Yes, daddy"
+    const tyPool = this.buffers.thankYou;
+    const ydPool = this.buffers.yesDaddy;
+    if (!tyPool.length || !ydPool.length) return;
+
     this.speechBusy = true;
     this.cancelSpeech();
+    this.speechBusy = true;
 
-    if (this.voiceMode === 'wholesome') {
-      const phrases = [
-        'Mmm, thank you! That orange was so sweet!',
-        'Purrfect catch! More citrus please!',
-        'Yummy! Vitamin C secured!',
-        'Nom nom nom! Best orchard ever!',
-        'So juicy! My tummy is super happy!',
-        'Ooh, right in the paws! Delicious!',
-      ];
-      const line = phrases[Math.floor(Math.random() * phrases.length)];
-      const u = this.speakIt(line, 1.24 + (Math.random() - 0.5) * 0.08, 1.04, 'wholesome');
-      this.armSpeechReset(u);
-      return;
-    }
+    const milestone = Math.max(0, Math.floor(biteCount / 8) - 1);
+    const rate1 = Math.max(0.85, 1.0 - milestone * 0.018);
+    const rate2 = Math.max(0.82, rate1 * 0.95);
 
-    // Classic 'unhinged' deadpan comedy mode — crisp, clear, and progressively deeper without robotic distortion
-    const depthStep = Math.min(12, Math.floor(biteCount / 6));
-    const pitch = Math.max(0.58, 0.92 - depthStep * 0.028);
-    const rate = Math.max(0.82, 0.95 - depthStep * 0.01);
+    const b1 = tyPool[this.tyCursor % tyPool.length];
+    const b2 = ydPool[this.ydCursor % ydPool.length];
+    this.tyCursor++;
+    this.ydCursor++;
 
-    const unhingedLines = [
-      'Thank you... yes daddy. More orange.',
-      'Mmm. Thank you for the citrus, daddy.',
-      'Yes. Feed the kitty. Do not stop.',
-      'Exquisite acidity. Give me another one.',
-      'Thank yoooou... yes daddy, keep them coming.',
-      'My hunger is eternal. Feed me faster.',
-      'Oh yes. That is the good vitamin C.',
-    ];
-    const line = unhingedLines[Math.floor(Math.random() * unhingedLines.length)];
-    const u = this.speakIt(line, pitch, rate, 'unhinged');
-    this.armSpeechReset(u);
-  }
-
-  playMissVoice() {
-    if (!this.sfxOn || this.voiceMode === 'off') return;
-    this.cancelSpeech();
-    this.speechBusy = false;
-
-    if (this.voiceMode === 'wholesome') {
-      const lines = [
-        'Oh no, my orange splatted!',
-        'Oops, we missed one! Watch out!',
-        'Come back, little orange!',
-        'Aw, right on the floor!',
-      ];
-      const u = this.speakIt(
-        lines[Math.floor(Math.random() * lines.length)],
-        1.18,
-        1.02,
-        'wholesome'
-      );
-      this.armSpeechReset(u);
-      return;
-    }
-
-    const lines = [
-      'You dropped my orange, you absolute donkey.',
-      'Are you serious right now? Pick it up.',
-      'Slow down, you asshole. That was mine.',
-      'Unbelievable. My vitamin C is on the floor.',
-      'Focus! You are starving the cat!',
-    ];
-    const u = this.speakIt(lines[Math.floor(Math.random() * lines.length)], 0.65, 0.88, 'unhinged');
-    this.armSpeechReset(u);
-  }
-
-  playGameOverVoice(reason) {
-    if (!this.sfxOn || this.voiceMode === 'off') return;
-    setTimeout(() => {
-      if (this.isPlaying) return;
-      if (this.voiceMode === 'wholesome') {
-        const msg =
-          reason === 'starved'
-            ? 'My tummy is rumbling! Let us play again and catch more oranges!'
-            : reason === 'time_up'
-            ? 'Time is up! Great job catching all that citrus!'
-            : 'All out of lives! Ready for another round?';
-        this.speakIt(msg, 1.2, 1.0, 'wholesome');
-      } else {
-        const msg =
-          reason === 'starved'
-            ? 'I am literally starving. Why did you fail me like this.'
-            : reason === 'time_up'
-            ? 'Time is up. Honestly, not terrible. Feed me again.'
-            : 'You let them all fall. Absolute disaster. Hit play again.';
-        this.speakIt(msg, 0.62, 0.85, 'unhinged');
-      }
-    }, 320);
-  }
-
-  armSpeechReset(utterance) {
     clearTimeout(this.speechSafetyTimer);
     this.speechSafetyTimer = setTimeout(() => {
       this.speechBusy = false;
     }, 4500);
-    const reset = () => {
+
+    this.playVoiceBuffer(b1, rate1, 0.96, () => {
+      if (!this.isPlaying || !this.sfxOn || this.voiceMode === 'off') {
+        this.speechBusy = false;
+        clearTimeout(this.speechSafetyTimer);
+        return;
+      }
+      this.secondPhraseTimer = setTimeout(() => {
+        this.playVoiceBuffer(b2, rate2, 0.98, () => {
+          this.speechBusy = false;
+          clearTimeout(this.speechSafetyTimer);
+        });
+      }, 75);
+    });
+  }
+
+  playMissVoice() {
+    if (!this.sfxOn || this.voiceMode === 'off' || !this.audioCtx) return;
+
+    // Wholesome mode: gentle plaintive kitten mew
+    if (this.voiceMode === 'wholesome') {
+      if (this.buffers.meows.length > 0) {
+        const b = this.buffers.meows[this.meowCursor % this.buffers.meows.length];
+        this.meowCursor++;
+        this.playVoiceBuffer(b, 0.84, 0.52);
+      }
+      return;
+    }
+
+    const missPool = this.buffers.miss;
+    if (!missPool.length) return;
+
+    this.cancelSpeech();
+    this.speechBusy = true;
+    const buf = missPool[this.missCursor % missPool.length];
+    this.missCursor++;
+
+    clearTimeout(this.speechSafetyTimer);
+    this.speechSafetyTimer = setTimeout(() => {
+      this.speechBusy = false;
+    }, 3500);
+
+    this.playVoiceBuffer(buf, 0.94, 0.98, () => {
       this.speechBusy = false;
       clearTimeout(this.speechSafetyTimer);
-    };
-    if (utterance) {
-      utterance.onend = reset;
-      utterance.onerror = reset;
-    } else {
-      reset();
-    }
+    });
+  }
+
+  playGameOverVoice(reason) {
+    if (!this.sfxOn || this.voiceMode === 'off' || !this.audioCtx) return;
+    if (this.voiceMode === 'wholesome') return;
+
+    const buf =
+      reason === 'starved'
+        ? this.buffers.gameOver.starved
+        : this.buffers.gameOver.no_lives;
+    if (!buf) return;
+
+    setTimeout(() => {
+      if (this.isPlaying || !this.sfxOn || this.voiceMode === 'off') return;
+      this.playVoiceBuffer(buf, 0.94, 0.98);
+    }, 180);
   }
 }
